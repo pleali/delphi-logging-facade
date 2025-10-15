@@ -9,6 +9,7 @@ interface
 uses
   System.SysUtils,
   System.SyncObjs,
+  System.Generics.Collections,
   Logger.Intf,
   Logger.Types;
 
@@ -18,6 +19,11 @@ type
   /// This allows custom logger implementations to be registered with the factory.
   /// </summary>
   TLoggerFactoryFunc = reference to function: ILogger;
+
+  /// <summary>
+  /// Factory function type for creating named logger instances.
+  /// </summary>
+  TNamedLoggerFactoryFunc = reference to function(const AName: string): ILogger;
 
   /// <summary>
   /// Singleton factory for creating and managing logger instances.
@@ -30,21 +36,27 @@ type
   /// </summary>
   TLoggerFactory = class sealed
   private
-    class var FInstance: ILogger;
+    class var FRootLogger: ILogger;
+    class var FNamedLoggers: TDictionary<string, ILogger>;
     class var FFactoryFunc: TLoggerFactoryFunc;
+    class var FNamedFactoryFunc: TNamedLoggerFactoryFunc;
     class var FLock: TCriticalSection;
+    class var FLoggerNameWidth: Integer;
 
     class constructor Create;
     class destructor Destroy;
 
     class function GetDefaultLogger: ILogger; static;
+    class function GetDefaultNamedLogger(const AName: string): ILogger; static;
   public
     /// <summary>
-    /// Gets the global logger instance.
+    /// Gets a logger instance. If AName is empty, returns the root logger.
+    /// If AName is provided, returns a cached named logger instance.
     /// If no logger has been configured, returns the default console logger.
     /// Thread-safe.
     /// </summary>
-    class function GetLogger: ILogger; static;
+    /// <param name="AName">Optional logger name (e.g., 'MqttRpc.Registry')</param>
+    class function GetLogger(const AName: string = ''): ILogger; static;
 
     /// <summary>
     /// Sets a custom factory function for creating loggers.
@@ -86,6 +98,24 @@ type
     /// Useful for testing or production environments where logging is not desired.
     /// </summary>
     class procedure UseNullLogger; static;
+
+    /// <summary>
+    /// Sets the width for logger name formatting in log output.
+    /// Default is 40 characters (inspired by Spring Boot).
+    /// </summary>
+    /// <param name="AWidth">Width in characters for logger name field</param>
+    class procedure SetLoggerNameWidth(AWidth: Integer); static;
+
+    /// <summary>
+    /// Gets the current logger name width.
+    /// </summary>
+    class function GetLoggerNameWidth: Integer; static;
+
+    /// <summary>
+    /// Sets a custom factory function for creating named loggers.
+    /// This allows adapters to create their own named logger instances.
+    /// </summary>
+    class procedure SetNamedLoggerFactory(AFactoryFunc: TNamedLoggerFactoryFunc); static;
   end;
 
   /// <summary>
@@ -105,34 +135,69 @@ uses
 class constructor TLoggerFactory.Create;
 begin
   FLock := TCriticalSection.Create;
-  FInstance := nil;
+  FNamedLoggers := TDictionary<string, ILogger>.Create;
+  FRootLogger := nil;
   FFactoryFunc := nil;
+  FNamedFactoryFunc := nil;
+  FLoggerNameWidth := 40; // Default width inspired by Spring Boot
 end;
 
 class destructor TLoggerFactory.Destroy;
 begin
+  FreeAndNil(FNamedLoggers);
   FreeAndNil(FLock);
-  FInstance := nil;
+  FRootLogger := nil;
   FFactoryFunc := nil;
+  FNamedFactoryFunc := nil;
 end;
 
 class function TLoggerFactory.GetDefaultLogger: ILogger;
 begin
-  Result := TConsoleLogger.Create(llInfo, True);
+  Result := TConsoleLogger.Create('', llInfo, True);
 end;
 
-class function TLoggerFactory.GetLogger: ILogger;
+class function TLoggerFactory.GetDefaultNamedLogger(const AName: string): ILogger;
 begin
+  Result := TConsoleLogger.Create(AName, llInfo, True);
+end;
+
+class function TLoggerFactory.GetLogger(const AName: string): ILogger;
+begin
+  // Fast path for root logger (no name) - no lock needed for read
+  if AName = '' then
+  begin
+    if FRootLogger = nil then
+    begin
+      FLock.Enter;
+      try
+        if FRootLogger = nil then // Double-check inside lock
+        begin
+          if Assigned(FFactoryFunc) then
+            FRootLogger := FFactoryFunc()
+          else
+            FRootLogger := GetDefaultLogger;
+        end;
+      finally
+        FLock.Leave;
+      end;
+    end;
+    Result := FRootLogger;
+    Exit;
+  end;
+
+  // Named logger path - check cache first
   FLock.Enter;
   try
-    if FInstance = nil then
+    if not FNamedLoggers.TryGetValue(AName, Result) then
     begin
-      if Assigned(FFactoryFunc) then
-        FInstance := FFactoryFunc()
+      // Create new named logger
+      if Assigned(FNamedFactoryFunc) then
+        Result := FNamedFactoryFunc(AName)
       else
-        FInstance := GetDefaultLogger;
+        Result := GetDefaultNamedLogger(AName);
+
+      FNamedLoggers.Add(AName, Result);
     end;
-    Result := FInstance;
   finally
     FLock.Leave;
   end;
@@ -143,7 +208,8 @@ begin
   FLock.Enter;
   try
     FFactoryFunc := AFactoryFunc;
-    FInstance := nil; // Force recreation on next GetLogger call
+    FRootLogger := nil; // Force recreation on next GetLogger call
+    FNamedLoggers.Clear; // Clear named logger cache
   finally
     FLock.Leave;
   end;
@@ -156,8 +222,9 @@ begin
 
   FLock.Enter;
   try
-    FInstance := ALogger;
+    FRootLogger := ALogger;
     FFactoryFunc := nil;
+    FNamedLoggers.Clear; // Clear named logger cache
   finally
     FLock.Leave;
   end;
@@ -167,8 +234,10 @@ class procedure TLoggerFactory.Reset;
 begin
   FLock.Enter;
   try
-    FInstance := nil;
+    FRootLogger := nil;
     FFactoryFunc := nil;
+    FNamedFactoryFunc := nil;
+    FNamedLoggers.Clear;
   finally
     FLock.Leave;
   end;
@@ -179,7 +248,13 @@ begin
   SetLoggerFactory(
     function: ILogger
     begin
-      Result := TConsoleLogger.Create(AMinLevel, AUseColors);
+      Result := TConsoleLogger.Create('', AMinLevel, AUseColors);
+    end
+  );
+  SetNamedLoggerFactory(
+    function(const AName: string): ILogger
+    begin
+      Result := TConsoleLogger.Create(AName, AMinLevel, AUseColors);
     end
   );
 end;
@@ -189,16 +264,51 @@ begin
   SetLoggerFactory(
     function: ILogger
     begin
-      Result := TNullLogger.Create;
+      Result := TNullLogger.Create('');
     end
   );
+  SetNamedLoggerFactory(
+    function(const AName: string): ILogger
+    begin
+      Result := TNullLogger.Create(AName);
+    end
+  );
+end;
+
+class procedure TLoggerFactory.SetLoggerNameWidth(AWidth: Integer);
+begin
+  if AWidth < 10 then
+    raise EArgumentException.Create('Logger name width must be at least 10 characters');
+
+  FLock.Enter;
+  try
+    FLoggerNameWidth := AWidth;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+class function TLoggerFactory.GetLoggerNameWidth: Integer;
+begin
+  Result := FLoggerNameWidth;
+end;
+
+class procedure TLoggerFactory.SetNamedLoggerFactory(AFactoryFunc: TNamedLoggerFactoryFunc);
+begin
+  FLock.Enter;
+  try
+    FNamedFactoryFunc := AFactoryFunc;
+    FNamedLoggers.Clear; // Clear cache when factory changes
+  finally
+    FLock.Leave;
+  end;
 end;
 
 { Global function }
 
 function Log: ILogger;
 begin
-  Result := TLoggerFactory.GetLogger;
+  Result := TLoggerFactory.GetLogger('');
 end;
 
 end.

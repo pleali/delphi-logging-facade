@@ -43,8 +43,8 @@ begin
   Writeln('=== LoggerPro Adapter Demo ===');
   Writeln;
 
-  // Configure our factory to use LoggerPro adapter
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create(GLogWriter, llDebug));
+  // Configure our factory to use LoggerPro adapter (root logger with no name)
+  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', GLogWriter, llDebug));
 
   // Get logger instance - application code doesn't know it's using LoggerPro
   LLogger := Log;
@@ -194,7 +194,7 @@ begin
 
   // Start with LoggerPro
   Writeln('** Using LoggerPro **');
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create(GLogWriter, llInfo));
+  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', GLogWriter, llInfo));
   LLogger := Log;
   LLogger.Info('This message goes through LoggerPro');
 
@@ -210,7 +210,7 @@ begin
 
   // Switch back to LoggerPro
   Writeln('** Switching back to LoggerPro **');
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create(GLogWriter, llInfo));
+  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', GLogWriter, llInfo));
   LLogger := Log;
   LLogger.Info('Back to LoggerPro');
 

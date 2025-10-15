@@ -20,9 +20,10 @@ type
   /// </summary>
   TNullLogger = class(TInterfacedObject, ILogger)
   private
+    FName: string;
     FLevel: TLogLevel;
   public
-    constructor Create;
+    constructor Create(const AName: string = '');
 
     // ILogger implementation - all methods do nothing
     procedure Trace(const AMessage: string); overload;
@@ -55,15 +56,18 @@ type
 
     procedure SetLevel(ALevel: TLogLevel);
     function GetLevel: TLogLevel;
+
+    function GetName: string;
   end;
 
 implementation
 
 { TNullLogger }
 
-constructor TNullLogger.Create;
+constructor TNullLogger.Create(const AName: string);
 begin
   inherited Create;
+  FName := AName;
   FLevel := llFatal; // Highest level - effectively disables all logging
 end;
 
@@ -178,6 +182,11 @@ end;
 function TNullLogger.GetLevel: TLogLevel;
 begin
   Result := FLevel;
+end;
+
+function TNullLogger.GetName: string;
+begin
+  Result := FName;
 end;
 
 end.

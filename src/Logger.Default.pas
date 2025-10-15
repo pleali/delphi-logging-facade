@@ -17,19 +17,22 @@ type
   /// Default logger implementation that writes to console and OutputDebugString.
   /// This is a simple, zero-dependency implementation suitable for console applications
   /// and debugging scenarios. Thread-safe for concurrent access.
+  /// Supports named loggers with Spring Boot-style formatting.
   /// </summary>
   TConsoleLogger = class(TInterfacedObject, ILogger)
   private
+    FName: string;
     FMinLevel: TLogLevel;
     FUseColors: Boolean;
     FLock: TCriticalSection;
 
     procedure LogMessage(ALevel: TLogLevel; const AMessage: string);
     function FormatMessage(ALevel: TLogLevel; const AMessage: string): string;
+    function FormatLoggerName: string;
     function IsLevelEnabled(ALevel: TLogLevel): Boolean;
     procedure WriteToConsole(ALevel: TLogLevel; const AMessage: string);
   public
-    constructor Create(AMinLevel: TLogLevel = llInfo; AUseColors: Boolean = True);
+    constructor Create(const AName: string = ''; AMinLevel: TLogLevel = llInfo; AUseColors: Boolean = True);
     destructor Destroy; override;
 
     // ILogger implementation
@@ -62,6 +65,8 @@ type
 
     procedure SetLevel(ALevel: TLogLevel);
     function GetLevel: TLogLevel;
+
+    function GetName: string;
   end;
 
 implementation
@@ -74,9 +79,10 @@ uses
 
 { TConsoleLogger }
 
-constructor TConsoleLogger.Create(AMinLevel: TLogLevel; AUseColors: Boolean);
+constructor TConsoleLogger.Create(const AName: string; AMinLevel: TLogLevel; AUseColors: Boolean);
 begin
   inherited Create;
+  FName := AName;
   FMinLevel := AMinLevel;
   FUseColors := AUseColors;
   FLock := TCriticalSection.Create;
@@ -93,12 +99,46 @@ begin
   Result := ALevel >= FMinLevel;
 end;
 
-function TConsoleLogger.FormatMessage(ALevel: TLogLevel; const AMessage: string): string;
+function TConsoleLogger.FormatLoggerName: string;
+var
+  NameWidth: Integer;
+  TruncatedName: string;
 begin
-  Result := Format('[%s] [%s] %s',
-    [FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now),
-     ALevel.ToString,
-     AMessage]);
+  if FName = '' then
+    Exit('');
+
+  NameWidth := 40; // Default, can be retrieved from factory if needed
+
+  // If name is longer than width, truncate and add ellipsis
+  if Length(FName) > NameWidth then
+  begin
+    TruncatedName := Copy(FName, 1, NameWidth - 3) + '...';
+    Result := Format('[%s] ', [TruncatedName]);
+  end
+  else
+  begin
+    // Right-align the name within the specified width
+    Result := Format('[%*s] ', [NameWidth, FName]);
+  end;
+end;
+
+function TConsoleLogger.FormatMessage(ALevel: TLogLevel; const AMessage: string): string;
+var
+  LoggerNamePart: string;
+begin
+  LoggerNamePart := FormatLoggerName;
+
+  if LoggerNamePart <> '' then
+    Result := Format('%s %-5s %s: %s',
+      [FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now),
+       ALevel.ToString,
+       LoggerNamePart,
+       AMessage])
+  else
+    Result := Format('%s %-5s : %s',
+      [FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now),
+       ALevel.ToString,
+       AMessage]);
 end;
 
 procedure TConsoleLogger.WriteToConsole(ALevel: TLogLevel; const AMessage: string);
@@ -282,6 +322,11 @@ end;
 function TConsoleLogger.GetLevel: TLogLevel;
 begin
   Result := FMinLevel;
+end;
+
+function TConsoleLogger.GetName: string;
+begin
+  Result := FName;
 end;
 
 end.

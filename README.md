@@ -180,6 +180,66 @@ begin
 end;
 ```
 
+### 6. Named Loggers (Component-Level Logging)
+
+Named loggers allow you to organize logs by component or module, similar to Spring Boot's logging system:
+
+```delphi
+uses
+  Logger.Factory;
+
+var
+  LLoggerMain: ILogger;
+  LLoggerDb: ILogger;
+  LLoggerApi: ILogger;
+begin
+  // Get named loggers for different components
+  LLoggerMain := TLoggerFactory.GetLogger('MyApp.Main');
+  LLoggerDb := TLoggerFactory.GetLogger('MyApp.Database');
+  LLoggerApi := TLoggerFactory.GetLogger('MyApp.ApiClient');
+
+  // Each logger adds its name to the output (Spring Boot style)
+  LLoggerMain.Info('Application initialized');
+  // Output: 2025-01-15 10:30:45.123 INFO  [                             MyApp.Main] : Application initialized
+
+  LLoggerDb.Debug('Connection established');
+  // Output: 2025-01-15 10:30:45.456 DEBUG [                         MyApp.Database] : Connection established
+
+  LLoggerApi.Warn('Rate limit approaching');
+  // Output: 2025-01-15 10:30:45.789 WARN  [                        MyApp.ApiClient] : Rate limit approaching
+
+  // Root logger (no name) still works
+  Log.Info('Application started');
+  // Output: 2025-01-15 10:30:45.000 INFO  : Application started
+end;
+```
+
+**Benefits of Named Loggers:**
+- **Organization**: Group logs by component, module, or layer
+- **Identification**: Instantly see which part of your application generated the log
+- **Debugging**: Quickly filter logs when troubleshooting specific components
+- **Performance**: Loggers are cached - getting the same named logger multiple times is very fast
+
+**Best Practices:**
+- Use hierarchical names: `MyApp.Module.Component`
+- Store logger in class fields for performance:
+  ```delphi
+  type
+    TApiClient = class
+    private
+      FLogger: ILogger;
+    public
+      constructor Create;
+    end;
+
+  constructor TApiClient.Create;
+  begin
+    inherited;
+    FLogger := TLoggerFactory.GetLogger('MyApp.ApiClient');
+  end;
+  ```
+- Root logger (no name) is fastest - use for simple applications
+
 ## Log Levels
 
 The framework supports the following log levels (from most verbose to most severe):
@@ -240,11 +300,14 @@ type
 ```delphi
 type
   TLoggerFactory = class
-    // Get the global logger instance
-    class function GetLogger: ILogger;
+    // Get logger instance (with optional name for component-level logging)
+    class function GetLogger(const AName: string = ''): ILogger;
 
     // Set a custom factory function
     class procedure SetLoggerFactory(AFactoryFunc: TLoggerFactoryFunc);
+
+    // Set a custom named logger factory function
+    class procedure SetNamedLoggerFactory(AFactoryFunc: TNamedLoggerFactoryFunc);
 
     // Set a specific logger instance
     class procedure SetLogger(ALogger: ILogger);
@@ -256,6 +319,10 @@ type
     class procedure UseConsoleLogger(AMinLevel: TLogLevel = llInfo;
                                      AUseColors: Boolean = True);
     class procedure UseNullLogger;
+
+    // Logger name formatting configuration
+    class procedure SetLoggerNameWidth(AWidth: Integer);
+    class function GetLoggerNameWidth: Integer;
   end;
 ```
 

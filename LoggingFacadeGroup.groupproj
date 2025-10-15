@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{4709FD5C-D502-4939-8794-495D438CB9FA}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="LoggingFacade.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="LoggingFacade.LoggerPro.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="LoggingFacade.QuickLogger.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="LoggingFacade">
+        <MSBuild Projects="LoggingFacade.dproj"/>
+    </Target>
+    <Target Name="LoggingFacade:Clean">
+        <MSBuild Projects="LoggingFacade.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LoggingFacade:Make">
+        <MSBuild Projects="LoggingFacade.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="LoggingFacade_LoggerPro">
+        <MSBuild Projects="LoggingFacade.LoggerPro.dproj"/>
+    </Target>
+    <Target Name="LoggingFacade_LoggerPro:Clean">
+        <MSBuild Projects="LoggingFacade.LoggerPro.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LoggingFacade_LoggerPro:Make">
+        <MSBuild Projects="LoggingFacade.LoggerPro.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="LoggingFacade_QuickLogger">
+        <MSBuild Projects="LoggingFacade.QuickLogger.dproj"/>
+    </Target>
+    <Target Name="LoggingFacade_QuickLogger:Clean">
+        <MSBuild Projects="LoggingFacade.QuickLogger.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LoggingFacade_QuickLogger:Make">
+        <MSBuild Projects="LoggingFacade.QuickLogger.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="LoggingFacade:Clean;LoggingFacade_LoggerPro:Clean;LoggingFacade_QuickLogger:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="LoggingFacade:Make;LoggingFacade_LoggerPro:Make;LoggingFacade_QuickLogger:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

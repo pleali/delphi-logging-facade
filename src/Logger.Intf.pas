@@ -136,6 +136,11 @@ type
     /// Gets the current minimum log level.
     /// </summary>
     function GetLevel: TLogLevel;
+
+    /// <summary>
+    /// Gets the logger name. Returns empty string for the root logger.
+    /// </summary>
+    function GetName: string;
   end;
 
 implementation

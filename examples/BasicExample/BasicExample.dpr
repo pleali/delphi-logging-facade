@@ -211,6 +211,49 @@ begin
   Writeln;
 end;
 
+/// <summary>
+/// Demonstrates using named loggers for different components
+/// </summary>
+procedure DemoNamedLoggers;
+var
+  LLoggerMain: ILogger;
+  LLoggerDb: ILogger;
+  LLoggerApi: ILogger;
+begin
+  Writeln('=== Demo 6: Named Loggers (Spring Boot style) ===');
+  Writeln;
+
+  // Configure factory with debug level
+  TLoggerFactory.UseConsoleLogger(llDebug);
+
+  // Get named loggers for different components
+  LLoggerMain := TLoggerFactory.GetLogger('MyApp.Main');
+  LLoggerDb := TLoggerFactory.GetLogger('MyApp.Database');
+  LLoggerApi := TLoggerFactory.GetLogger('MyApp.ApiClient');
+
+  // Also works with root logger (no name)
+  Writeln('** Root logger (no name) **');
+  Log.Info('Application starting');
+
+  Writeln;
+  Writeln('** Named loggers with aligned output **');
+
+  LLoggerMain.Info('Application initialized');
+  LLoggerMain.Debug('Loading configuration from app.config');
+
+  LLoggerDb.Info('Connecting to database');
+  LLoggerDb.Debug('Connection string: localhost:5432');
+  LLoggerDb.Info('Database connection established');
+
+  LLoggerApi.Info('Initializing API client');
+  LLoggerApi.Debug('Base URL: https://api.example.com');
+  LLoggerApi.Warn('API rate limit: 100 requests/min');
+
+  LLoggerMain.Info('All systems ready');
+
+  Writeln;
+end;
+
 begin
   try
     Writeln('LoggingFacade - Basic Examples');
@@ -222,6 +265,7 @@ begin
     DemoNullLogger;
     DemoBusinessLogic;
     DemoLevelChecks;
+    DemoNamedLoggers;
 
     Writeln('======================================');
     Writeln('All demos completed successfully!');

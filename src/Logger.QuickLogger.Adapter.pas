@@ -24,13 +24,14 @@ type
   /// Note: This unit has a dependency on the QuickLogger library.
   /// Only include this unit if you're using QuickLogger.
   /// </summary>
-  TQuickLoggerAdapter = class(TInterfacedObject, ILogger)
+  TQuickLoggerAdapter = class(TInterfacedObject, Logger.Intf.ILogger)
   private
+    FName: string;
     FMinLevel: Logger.Types.TLogLevel;
 
     function IsLevelEnabled(ALevel: Logger.Types.TLogLevel): Boolean;
   public
-    constructor Create(AMinLevel: Logger.Types.TLogLevel = Logger.Types.llInfo);
+    constructor Create(const AName: string = ''; AMinLevel: Logger.Types.TLogLevel = Logger.Types.llInfo);
 
     // ILogger implementation
     procedure Trace(const AMessage: string); overload;
@@ -62,15 +63,18 @@ type
 
     procedure SetLevel(ALevel: Logger.Types.TLogLevel);
     function GetLevel: Logger.Types.TLogLevel;
+
+    function GetName: string;
   end;
 
 implementation
 
 { TQuickLoggerAdapter }
 
-constructor TQuickLoggerAdapter.Create(AMinLevel: Logger.Types.TLogLevel);
+constructor TQuickLoggerAdapter.Create(const AName: string; AMinLevel: Logger.Types.TLogLevel);
 begin
   inherited Create;
+  FName := AName;
   FMinLevel := AMinLevel;
 end;
 
@@ -213,6 +217,11 @@ end;
 function TQuickLoggerAdapter.GetLevel: Logger.Types.TLogLevel;
 begin
   Result := FMinLevel;
+end;
+
+function TQuickLoggerAdapter.GetName: string;
+begin
+  Result := FName;
 end;
 
 end.

@@ -53,8 +53,8 @@ begin
   Writeln('=== QuickLogger Adapter Demo ===');
   Writeln;
 
-  // Configure our factory to use QuickLogger adapter
-  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llDebug));
+  // Configure our factory to use QuickLogger adapter (root logger with no name)
+  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
 
   // Get logger instance - application code doesn't know it's using QuickLogger
   LLogger := Log;
@@ -173,7 +173,7 @@ begin
   Writeln('=== Performance-Conscious Logging Demo ===');
   Writeln;
 
-  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llInfo));
+  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llInfo));
   LLogger := Log;
 
   Writeln('** Without level checking (inefficient) **');
@@ -208,7 +208,7 @@ begin
   Writeln('=== Structured Logging Demo ===');
   Writeln;
 
-  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llDebug));
+  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
   LLogger := Log;
 
   // Log with context information

@@ -8,6 +8,7 @@ interface
 
 uses
   System.SysUtils,
+  System.StrUtils,
   Logger.Intf,
   Logger.Types,
   LoggerPro;  // External dependency: LoggerPro library
@@ -26,14 +27,15 @@ type
   /// Note: This unit has a dependency on the LoggerPro library.
   /// Only include this unit if you're using LoggerPro.
   /// </summary>
-  TLoggerProAdapter = class(TInterfacedObject, ILogger)
+  TLoggerProAdapter = class(TInterfacedObject, Logger.Intf.ILogger)
   private
+    FName: string;
     FMinLevel: Logger.Types.TLogLevel;
     FLogWriter: ILogWriter;
 
     function IsLevelEnabled(ALevel: Logger.Types.TLogLevel): Boolean;
   public
-    constructor Create(ALogWriter: ILogWriter; AMinLevel: Logger.Types.TLogLevel = Logger.Types.llInfo);
+    constructor Create(const AName: string; ALogWriter: ILogWriter; AMinLevel: Logger.Types.TLogLevel = Logger.Types.llInfo);
 
     // ILogger implementation
     procedure Trace(const AMessage: string); overload;
@@ -65,15 +67,18 @@ type
 
     procedure SetLevel(ALevel: Logger.Types.TLogLevel);
     function GetLevel: Logger.Types.TLogLevel;
+
+    function GetName: string;
   end;
 
 implementation
 
 { TLoggerProAdapter }
 
-constructor TLoggerProAdapter.Create(ALogWriter: ILogWriter; AMinLevel: Logger.Types.TLogLevel);
+constructor TLoggerProAdapter.Create(const AName: string; ALogWriter: ILogWriter; AMinLevel: Logger.Types.TLogLevel);
 begin
   inherited Create;
+  FName := AName;
   FLogWriter := ALogWriter;
   FMinLevel := AMinLevel;
 end;
@@ -84,98 +89,164 @@ begin
 end;
 
 procedure TLoggerProAdapter.Trace(const AMessage: string);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llTrace) then
-    FLogWriter.Debug(AMessage, 'TRACE');
+  begin
+    LTag := IfThen(FName <> '', FName, 'TRACE');
+    FLogWriter.Debug(AMessage, LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Trace(const AMessage: string; const AArgs: array of const);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llTrace) then
-    FLogWriter.Debug(Format(AMessage, AArgs), 'TRACE');
+  begin
+    LTag := IfThen(FName <> '', FName, 'TRACE');
+    FLogWriter.Debug(Format(AMessage, AArgs), LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Debug(const AMessage: string);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llDebug) then
-    FLogWriter.Debug(AMessage, 'APP');
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Debug(AMessage, LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Debug(const AMessage: string; const AArgs: array of const);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llDebug) then
-    FLogWriter.Debug(Format(AMessage, AArgs), 'APP');
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Debug(Format(AMessage, AArgs), LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Info(const AMessage: string);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llInfo) then
-    FLogWriter.Info(AMessage, 'APP');
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Info(AMessage, LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Info(const AMessage: string; const AArgs: array of const);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llInfo) then
-    FLogWriter.Info(Format(AMessage, AArgs), 'APP');
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Info(Format(AMessage, AArgs), LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Warn(const AMessage: string);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llWarn) then
-    FLogWriter.Warn(AMessage, 'APP');
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Warn(AMessage, LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Warn(const AMessage: string; const AArgs: array of const);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llWarn) then
-    FLogWriter.Warn(Format(AMessage, AArgs), 'APP');
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Warn(Format(AMessage, AArgs), LTag);
+  end;
 end;
 
 procedure TLoggerProAdapter.Error(const AMessage: string);
-begin
-  if IsLevelEnabled(Logger.Types.llError) then
-    FLogWriter.Error(AMessage, 'APP');
-end;
-
-procedure TLoggerProAdapter.Error(const AMessage: string; const AArgs: array of const);
-begin
-  if IsLevelEnabled(Logger.Types.llError) then
-    FLogWriter.Error(Format(AMessage, AArgs), 'APP');
-end;
-
-procedure TLoggerProAdapter.Error(const AMessage: string; AException: Exception);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llError) then
   begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Error(AMessage, LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Error(const AMessage: string; const AArgs: array of const);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llError) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    FLogWriter.Error(Format(AMessage, AArgs), LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Error(const AMessage: string; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llError) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
     if AException <> nil then
       FLogWriter.Error(Format('%s - Exception: %s: %s',
-        [AMessage, AException.ClassName, AException.Message]), 'APP')
+        [AMessage, AException.ClassName, AException.Message]), LTag)
     else
-      FLogWriter.Error(AMessage, 'APP');
+      FLogWriter.Error(AMessage, LTag);
   end;
 end;
 
 procedure TLoggerProAdapter.Fatal(const AMessage: string);
-begin
-  if IsLevelEnabled(Logger.Types.llFatal) then
-    FLogWriter.Error(AMessage, 'FATAL');
-end;
-
-procedure TLoggerProAdapter.Fatal(const AMessage: string; const AArgs: array of const);
-begin
-  if IsLevelEnabled(Logger.Types.llFatal) then
-    FLogWriter.Error(Format(AMessage, AArgs), 'FATAL');
-end;
-
-procedure TLoggerProAdapter.Fatal(const AMessage: string; AException: Exception);
+var
+  LTag: string;
 begin
   if IsLevelEnabled(Logger.Types.llFatal) then
   begin
+    LTag := IfThen(FName <> '', FName, 'FATAL');
+    FLogWriter.Error(AMessage, LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Fatal(const AMessage: string; const AArgs: array of const);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llFatal) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'FATAL');
+    FLogWriter.Error(Format(AMessage, AArgs), LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Fatal(const AMessage: string; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llFatal) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'FATAL');
     if AException <> nil then
       FLogWriter.Error(Format('%s - Exception: %s: %s',
-        [AMessage, AException.ClassName, AException.Message]), 'FATAL')
+        [AMessage, AException.ClassName, AException.Message]), LTag)
     else
-      FLogWriter.Error(AMessage, 'FATAL');
+      FLogWriter.Error(AMessage, LTag);
   end;
 end;
 
@@ -217,6 +288,11 @@ end;
 function TLoggerProAdapter.GetLevel: Logger.Types.TLogLevel;
 begin
   Result := FMinLevel;
+end;
+
+function TLoggerProAdapter.GetName: string;
+begin
+  Result := FName;
 end;
 
 end.
