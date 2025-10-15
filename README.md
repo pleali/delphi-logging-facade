@@ -42,6 +42,30 @@ A flexible, SLF4J-inspired logging facade for Delphi that decouples your applica
 └─────────────────────────────────────────┘
 ```
 
+## Default Logger vs Production Logging
+
+**Important Note**: The default `TConsoleLogger` provided by this facade is a basic implementation designed for:
+- Development and debugging
+- Console applications
+- Simple logging scenarios
+- Learning and testing
+
+While the default logger is **thread-safe**, it is **not optimized for production use** and lacks advanced features such as:
+- Asynchronous logging
+- Log rotation and archiving
+- Multiple output targets (file, database, network)
+- Structured logging
+- Performance optimization for high-volume logging
+- Advanced filtering and formatting
+
+**For production applications**, we strongly recommend using one of the supported external logging libraries:
+- **LoggerPro**: High-performance, async logging with multiple appenders
+- **QuickLogger**: Feature-rich with providers for files, console, email, databases, etc.
+
+These libraries are specifically designed for production workloads and offer the performance, reliability, and features required by enterprise applications.
+
+The facade pattern allows you to start development with the simple default logger and seamlessly switch to a production-ready library when needed, without changing your application code.
+
 ## Installation
 
 The framework consists of three BPL packages:

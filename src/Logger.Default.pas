@@ -8,6 +8,7 @@ interface
 
 uses
   System.SysUtils,
+  System.SyncObjs,
   Logger.Intf,
   Logger.Types;
 
@@ -15,12 +16,13 @@ type
   /// <summary>
   /// Default logger implementation that writes to console and OutputDebugString.
   /// This is a simple, zero-dependency implementation suitable for console applications
-  /// and debugging scenarios.
+  /// and debugging scenarios. Thread-safe for concurrent access.
   /// </summary>
   TConsoleLogger = class(TInterfacedObject, ILogger)
   private
     FMinLevel: TLogLevel;
     FUseColors: Boolean;
+    FLock: TCriticalSection;
 
     procedure LogMessage(ALevel: TLogLevel; const AMessage: string);
     function FormatMessage(ALevel: TLogLevel; const AMessage: string): string;
@@ -28,6 +30,7 @@ type
     procedure WriteToConsole(ALevel: TLogLevel; const AMessage: string);
   public
     constructor Create(AMinLevel: TLogLevel = llInfo; AUseColors: Boolean = True);
+    destructor Destroy; override;
 
     // ILogger implementation
     procedure Trace(const AMessage: string); overload;
@@ -76,6 +79,13 @@ begin
   inherited Create;
   FMinLevel := AMinLevel;
   FUseColors := AUseColors;
+  FLock := TCriticalSection.Create;
+end;
+
+destructor TConsoleLogger.Destroy;
+begin
+  FLock.Free;
+  inherited;
 end;
 
 function TConsoleLogger.IsLevelEnabled(ALevel: TLogLevel): Boolean;
@@ -135,15 +145,20 @@ begin
   if not IsLevelEnabled(ALevel) then
     Exit;
 
-  FormattedMessage := FormatMessage(ALevel, AMessage);
+  FLock.Enter;
+  try
+    FormattedMessage := FormatMessage(ALevel, AMessage);
 
-  // Write to console
-  WriteToConsole(ALevel, FormattedMessage);
+    // Write to console
+    WriteToConsole(ALevel, FormattedMessage);
 
-  // Write to debug output (visible in IDE debugger)
-  {$IFDEF MSWINDOWS}
-  OutputDebugString(PChar(FormattedMessage));
-  {$ENDIF}
+    // Write to debug output (visible in IDE debugger)
+    {$IFDEF MSWINDOWS}
+    OutputDebugString(PChar(FormattedMessage));
+    {$ENDIF}
+  finally
+    FLock.Leave;
+  end;
 end;
 
 procedure TConsoleLogger.Trace(const AMessage: string);
@@ -256,7 +271,12 @@ end;
 
 procedure TConsoleLogger.SetLevel(ALevel: TLogLevel);
 begin
-  FMinLevel := ALevel;
+  FLock.Enter;
+  try
+    FMinLevel := ALevel;
+  finally
+    FLock.Leave;
+  end;
 end;
 
 function TConsoleLogger.GetLevel: TLogLevel;
