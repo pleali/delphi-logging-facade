@@ -512,6 +512,443 @@ end;
 3. **Null Logger**: Use the null logger in production if logging is not needed
 4. **Async Logging**: Consider using LoggerPro or QuickLogger for async logging in high-performance scenarios
 
+## Using Adapter Packages
+
+The framework uses a modular architecture where adapters are provided as separate BPL packages. This allows you to include only the logging libraries you actually use in your project.
+
+### Package Dependencies
+
+```
+Your Application
+    ↓ (requires)
+LoggingFacade.dpk (core)
+    ↓ (optionally requires)
+LoggingFacade.LoggerPro.dpk
+    ↓ (requires)
+LoggerPro (external library)
+```
+
+### Step-by-Step: Using the LoggerPro Adapter
+
+**1. Install Required Packages**
+
+First, ensure you have:
+- LoggerPro library installed (from https://github.com/danieleteti/loggerpro)
+- `LoggingFacade.dpk` compiled and installed
+- `LoggingFacade.LoggerPro.dpk` compiled and installed
+
+**2. Add Package Reference to Your Project**
+
+In your project's `.dproj` file or via IDE:
+- Add `LoggingFacade` to required packages
+- Add `LoggingFacade.LoggerPro` to required packages (only if using LoggerPro)
+
+**3. Use in Your Code**
+
+```delphi
+program MyApp;
+
+uses
+  Logger.Factory,
+  Logger.LoggerPro.Adapter,
+  Logger.Types,
+  LoggerPro,
+  LoggerPro.FileAppender;
+
+var
+  GLogWriter: ILogWriter;
+
+procedure InitializeLogging;
+begin
+  // Create LoggerPro instance
+  GLogWriter := BuildLogWriter([
+    TLoggerProFileAppender.Create(10, 5, 'logs')
+  ]);
+
+  // Configure facade to use LoggerPro
+  TLoggerFactory.SetLogger(TLoggerProAdapter.Create(GLogWriter, llDebug));
+end;
+
+begin
+  InitializeLogging;
+
+  // Use the facade normally
+  Log.Info('Application started');
+  // ...
+end.
+```
+
+### Step-by-Step: Using the QuickLogger Adapter
+
+**1. Install Required Packages**
+
+First, ensure you have:
+- QuickLogger library installed (from https://github.com/exilon/QuickLogger)
+- `LoggingFacade.dpk` compiled and installed
+- `LoggingFacade.QuickLogger.dpk` compiled and installed
+
+**2. Add Package Reference to Your Project**
+
+- Add `LoggingFacade` to required packages
+- Add `LoggingFacade.QuickLogger` to required packages (only if using QuickLogger)
+
+**3. Use in Your Code**
+
+```delphi
+program MyApp;
+
+uses
+  Logger.Factory,
+  Logger.QuickLogger.Adapter,
+  Logger.Types,
+  Quick.Logger,
+  Quick.Logger.Provider.Files;
+
+procedure InitializeLogging;
+begin
+  // Configure QuickLogger providers
+  Quick.Logger.Logger.Providers.Add(TLogFileProvider.Create);
+
+  // Configure facade to use QuickLogger
+  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llDebug));
+end;
+
+begin
+  InitializeLogging;
+
+  // Use the facade normally
+  Log.Info('Application started');
+  // ...
+end.
+```
+
+### Switching Between Adapters at Runtime
+
+You can switch logging implementations at runtime without changing application code:
+
+```delphi
+// Start with console logger
+TLoggerFactory.UseConsoleLogger(llDebug);
+Log.Info('Using console logger');
+
+// Switch to LoggerPro
+TLoggerFactory.SetLogger(TLoggerProAdapter.Create(GLogWriter, llDebug));
+Log.Info('Now using LoggerPro');
+
+// Switch to QuickLogger
+TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llDebug));
+Log.Info('Now using QuickLogger');
+
+// Disable logging completely
+TLoggerFactory.UseNullLogger;
+```
+
+### Adapter Package Benefits
+
+1. **No Forced Dependencies**: Your application doesn't need LoggerPro or QuickLogger unless you explicitly use them
+2. **Smaller Binaries**: Only include what you use
+3. **Easy Migration**: Switch between logging libraries by changing one line of code
+4. **Testing**: Use null logger in tests, real logger in production
+
+## Creating a Custom Adapter
+
+To integrate a new logging framework with LoggingFacade, follow these steps:
+
+### Step 1: Create the Adapter Unit
+
+Create a new unit following the naming convention: `Logger.YourFramework.Adapter.pas`
+
+```delphi
+unit Logger.YourLibrary.Adapter;
+
+interface
+
+uses
+  System.SysUtils,
+  Logger.Intf,
+  Logger.Types,
+  YourLoggingLibrary;  // Your external logging library
+
+type
+  /// <summary>
+  /// Adapter for YourLibrary logging framework
+  /// </summary>
+  TYourLibraryAdapter = class(TInterfacedObject, Logger.Intf.ILogger)
+  private
+    FMinLevel: Logger.Types.TLogLevel;
+    FYourLogger: TYourLibraryLogger;  // Your library's logger instance
+
+    function IsLevelEnabled(ALevel: Logger.Types.TLogLevel): Boolean;
+  public
+    constructor Create(AYourLogger: TYourLibraryLogger;
+                       AMinLevel: Logger.Types.TLogLevel = Logger.Types.llInfo);
+    destructor Destroy; override;
+
+    // ILogger implementation
+    procedure Trace(const AMessage: string); overload;
+    procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+
+    procedure Debug(const AMessage: string); overload;
+    procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+
+    procedure Info(const AMessage: string); overload;
+    procedure Info(const AMessage: string; const AArgs: array of const); overload;
+
+    procedure Warn(const AMessage: string); overload;
+    procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+
+    procedure Error(const AMessage: string); overload;
+    procedure Error(const AMessage: string; const AArgs: array of const); overload;
+    procedure Error(const AMessage: string; AException: Exception); overload;
+
+    procedure Fatal(const AMessage: string); overload;
+    procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
+    procedure Fatal(const AMessage: string; AException: Exception); overload;
+
+    function IsTraceEnabled: Boolean;
+    function IsDebugEnabled: Boolean;
+    function IsInfoEnabled: Boolean;
+    function IsWarnEnabled: Boolean;
+    function IsErrorEnabled: Boolean;
+    function IsFatalEnabled: Boolean;
+
+    procedure SetLevel(ALevel: Logger.Types.TLogLevel);
+    function GetLevel: Logger.Types.TLogLevel;
+  end;
+
+implementation
+
+constructor TYourLibraryAdapter.Create(AYourLogger: TYourLibraryLogger;
+                                       AMinLevel: Logger.Types.TLogLevel);
+begin
+  inherited Create;
+  FYourLogger := AYourLogger;
+  FMinLevel := AMinLevel;
+end;
+
+destructor TYourLibraryAdapter.Destroy;
+begin
+  // Clean up if needed
+  inherited;
+end;
+
+function TYourLibraryAdapter.IsLevelEnabled(ALevel: Logger.Types.TLogLevel): Boolean;
+begin
+  Result := ALevel >= FMinLevel;
+end;
+
+procedure TYourLibraryAdapter.Info(const AMessage: string);
+begin
+  if IsLevelEnabled(Logger.Types.llInfo) then
+    FYourLogger.LogInfo(AMessage);  // Call your library's method
+end;
+
+procedure TYourLibraryAdapter.Info(const AMessage: string; const AArgs: array of const);
+begin
+  if IsLevelEnabled(Logger.Types.llInfo) then
+    FYourLogger.LogInfo(Format(AMessage, AArgs));
+end;
+
+// Implement other methods similarly...
+
+function TYourLibraryAdapter.IsInfoEnabled: Boolean;
+begin
+  Result := IsLevelEnabled(Logger.Types.llInfo);
+end;
+
+procedure TYourLibraryAdapter.SetLevel(ALevel: Logger.Types.TLogLevel);
+begin
+  FMinLevel := ALevel;
+end;
+
+function TYourLibraryAdapter.GetLevel: Logger.Types.TLogLevel;
+begin
+  Result := FMinLevel;
+end;
+
+end.
+```
+
+### Step 2: Handle Type Conflicts
+
+If your logging library defines its own `TLogLevel` or `ILogger`, use qualified names to avoid conflicts:
+
+```delphi
+// Always qualify types from the facade
+FMinLevel: Logger.Types.TLogLevel;  // Our facade's TLogLevel
+
+// Qualify your library's types
+FLibraryLevel: YourLibrary.TLogLevel;  // Library's TLogLevel
+
+// Qualify interface implementations
+TYourAdapter = class(TInterfacedObject, Logger.Intf.ILogger)
+```
+
+### Step 3: Map Log Levels
+
+Create a mapping between facade log levels and your library's levels:
+
+```delphi
+function TYourLibraryAdapter.MapLogLevel(ALevel: Logger.Types.TLogLevel): TYourLibraryLevel;
+begin
+  case ALevel of
+    Logger.Types.llTrace: Result := YourLibrary.lvTrace;
+    Logger.Types.llDebug: Result := YourLibrary.lvDebug;
+    Logger.Types.llInfo:  Result := YourLibrary.lvInfo;
+    Logger.Types.llWarn:  Result := YourLibrary.lvWarning;
+    Logger.Types.llError: Result := YourLibrary.lvError;
+    Logger.Types.llFatal: Result := YourLibrary.lvFatal;
+  else
+    Result := YourLibrary.lvInfo;
+  end;
+end;
+```
+
+### Step 4: Create the BPL Package
+
+Create `LoggingFacade.YourLibrary.dpk`:
+
+```pascal
+package LoggingFacade.YourLibrary;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS ON}
+{$RANGECHECKS ON}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'LoggingFacade - YourLibrary adapter'}
+{$RUNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  LoggingFacade,
+  YourLibraryPackage;  // Your library's package name
+
+contains
+  Logger.YourLibrary.Adapter in 'src\Logger.YourLibrary.Adapter.pas';
+
+end.
+```
+
+### Step 5: Create an Example
+
+Create `examples/YourLibraryExample/YourLibraryExample.dpr`:
+
+```delphi
+program YourLibraryExample;
+
+{$APPTYPE CONSOLE}
+
+uses
+  System.SysUtils,
+  Logger.Factory,
+  Logger.YourLibrary.Adapter,
+  Logger.Types,
+  YourLoggingLibrary;
+
+var
+  GYourLogger: TYourLibraryLogger;
+
+procedure ConfigureLogging;
+begin
+  // Initialize your library
+  GYourLogger := TYourLibraryLogger.Create;
+  GYourLogger.OutputFile := 'app.log';
+
+  // Configure facade to use your adapter
+  TLoggerFactory.SetLogger(TYourLibraryAdapter.Create(GYourLogger, llDebug));
+end;
+
+begin
+  try
+    ConfigureLogging;
+
+    Log.Info('Application started with YourLibrary');
+    Log.Debug('Debug message');
+    Log.Warn('Warning message');
+
+    Writeln('Check app.log for output');
+    Readln;
+  except
+    on E: Exception do
+    begin
+      Writeln('Error: ', E.Message);
+      Readln;
+    end;
+  end;
+end.
+```
+
+### Step 6: Add Documentation
+
+Update your adapter's unit documentation with:
+
+1. **Usage instructions**
+2. **Dependencies and version requirements**
+3. **Known limitations or special considerations**
+4. **Example code**
+
+```delphi
+/// <summary>
+/// Adapter that bridges ILogger interface to YourLibrary.
+///
+/// Usage:
+///   var Logger: TYourLibraryLogger;
+///   Logger := TYourLibraryLogger.Create;
+///   TLoggerFactory.SetLogger(TYourLibraryAdapter.Create(Logger));
+///
+/// Requirements:
+///   - YourLibrary v2.0 or later
+///   - Windows/macOS/Linux compatible
+///
+/// Notes:
+///   - YourLibrary doesn't support Trace level, maps to Debug
+///   - Thread-safe if YourLibrary instance is thread-safe
+/// </summary>
+```
+
+### Step 7: Testing Checklist
+
+Before publishing your adapter:
+
+- [ ] All ILogger methods implemented
+- [ ] Type conflicts resolved with qualified names
+- [ ] Log level mapping tested
+- [ ] Exception handling tested
+- [ ] Thread safety considered
+- [ ] Memory leaks checked
+- [ ] Example application works
+- [ ] Documentation complete
+- [ ] BPL package compiles
+- [ ] No warnings in strict mode
+
+### Adapter Best Practices
+
+1. **Stateless if possible**: Don't maintain state unless necessary
+2. **Thread-safe**: Document thread-safety guarantees
+3. **Performance**: Check log levels before formatting messages
+4. **Resource management**: Properly manage any resources (file handles, connections)
+5. **Error handling**: Never let adapter exceptions crash the application
+6. **Documentation**: Provide clear usage examples
+
 ## Contributing
 
 To add support for a new logging framework:
