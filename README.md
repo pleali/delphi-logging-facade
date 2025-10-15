@@ -93,6 +93,7 @@ The framework consists of three BPL packages:
 
 ```delphi
 uses
+  Logger.Intf,
   Logger.Factory;
 
 var
@@ -140,6 +141,7 @@ end;
 
 ```delphi
 uses
+  Logger.Intf,
   Logger.Factory,
   Logger.LoggerPro.Adapter,
   Logger.Types,
@@ -153,7 +155,7 @@ begin
   LLogWriter := BuildLogWriter([TLoggerProFileAppender.Create(10, 5, 'logs')]);
 
   // Use LoggerPro through our facade
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create(LLogWriter, llDebug));
+  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', LLogWriter, llDebug));
 
   Log.Info('This goes to LoggerPro');
 end;
@@ -163,6 +165,7 @@ end;
 
 ```delphi
 uses
+  Logger.Intf,
   Logger.Factory,
   Logger.QuickLogger.Adapter,
   Logger.Types,
@@ -174,7 +177,7 @@ begin
   Quick.Logger.Logger.Providers.Add(TLogFileProvider.Create);
 
   // Use QuickLogger through our facade
-  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llInfo));
+  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llInfo));
 
   Log.Info('This goes to QuickLogger');
 end;
@@ -186,6 +189,7 @@ Named loggers allow you to organize logs by component or module, similar to Spri
 
 ```delphi
 uses
+  Logger.Intf,
   Logger.Factory;
 
 var
@@ -483,6 +487,10 @@ end.
 ### Example 2: Service Class with Logging
 
 ```delphi
+uses
+  Logger.Intf,
+  Logger.Factory;
+
 type
   TDataService = class
   private
@@ -528,6 +536,7 @@ end;
 program LoggerProApp;
 
 uses
+  Logger.Intf,
   Logger.Factory,
   Logger.LoggerPro.Adapter,
   Logger.Types,
@@ -545,7 +554,7 @@ begin
   ]);
 
   // Configure facade to use LoggerPro
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create(LLogWriter, llDebug));
+  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', LLogWriter, llDebug));
 
   // Use the facade
   Log.Debug('Application started with LoggerPro');
@@ -640,6 +649,7 @@ In your project's `.dproj` file or via IDE:
 program MyApp;
 
 uses
+  Logger.Intf,
   Logger.Factory,
   Logger.LoggerPro.Adapter,
   Logger.Types,
@@ -657,7 +667,7 @@ begin
   ]);
 
   // Configure facade to use LoggerPro
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create(GLogWriter, llDebug));
+  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', GLogWriter, llDebug));
 end;
 
 begin
@@ -689,6 +699,7 @@ First, ensure you have:
 program MyApp;
 
 uses
+  Logger.Intf,
   Logger.Factory,
   Logger.QuickLogger.Adapter,
   Logger.Types,
@@ -701,7 +712,7 @@ begin
   Quick.Logger.Logger.Providers.Add(TLogFileProvider.Create);
 
   // Configure facade to use QuickLogger
-  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llDebug));
+  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
 end;
 
 begin
@@ -723,11 +734,11 @@ TLoggerFactory.UseConsoleLogger(llDebug);
 Log.Info('Using console logger');
 
 // Switch to LoggerPro
-TLoggerFactory.SetLogger(TLoggerProAdapter.Create(GLogWriter, llDebug));
+TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', GLogWriter, llDebug));
 Log.Info('Now using LoggerPro');
 
 // Switch to QuickLogger
-TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create(llDebug));
+TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
 Log.Info('Now using QuickLogger');
 
 // Disable logging completely
