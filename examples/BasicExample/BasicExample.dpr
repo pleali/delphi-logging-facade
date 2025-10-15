@@ -1,0 +1,238 @@
+program BasicExample;
+
+{$APPTYPE CONSOLE}
+
+{$R *.res}
+
+uses
+  System.SysUtils,
+  Logger.Types in '..\..\src\Logger.Types.pas',
+  Logger.Intf in '..\..\src\Logger.Intf.pas',
+  Logger.Default in '..\..\src\Logger.Default.pas',
+  Logger.Null in '..\..\src\Logger.Null.pas',
+  Logger.Factory in '..\..\src\Logger.Factory.pas';
+
+/// <summary>
+/// Simulates processing some business logic
+/// </summary>
+procedure ProcessOrder(AOrderId: Integer);
+var
+  LLogger: ILogger;
+begin
+  LLogger := Log;  // Get the global logger
+
+  LLogger.Info('Starting order processing for order #%d', [AOrderId]);
+
+  try
+    LLogger.Debug('Validating order #%d', [AOrderId]);
+    // Simulate validation
+    Sleep(100);
+
+    if AOrderId = 999 then
+    begin
+      LLogger.Warn('Order #%d has unusual amount', [AOrderId]);
+    end;
+
+    LLogger.Debug('Saving order #%d to database', [AOrderId]);
+    // Simulate database save
+    Sleep(150);
+
+    if AOrderId = 666 then
+      raise Exception.Create('Database connection failed');
+
+    LLogger.Info('Order #%d processed successfully', [AOrderId]);
+  except
+    on E: Exception do
+    begin
+      LLogger.Error('Failed to process order #%d', E);
+      raise;
+    end;
+  end;
+end;
+
+/// <summary>
+/// Demonstrates basic logging with the default console logger
+/// </summary>
+procedure DemoBasicLogging;
+var
+  LLogger: ILogger;
+begin
+  Writeln('=== Demo 1: Basic Console Logging ===');
+  Writeln;
+
+  // Use default console logger (automatically created by factory)
+  LLogger := Log;
+
+  LLogger.Trace('This is a TRACE message (won''t show with default INFO level)');
+  LLogger.Debug('This is a DEBUG message (won''t show with default INFO level)');
+  LLogger.Info('This is an INFO message');
+  LLogger.Warn('This is a WARN message');
+  LLogger.Error('This is an ERROR message');
+  LLogger.Fatal('This is a FATAL message');
+
+  Writeln;
+end;
+
+/// <summary>
+/// Demonstrates changing the log level at runtime
+/// </summary>
+procedure DemoLogLevels;
+var
+  LLogger: ILogger;
+begin
+  Writeln('=== Demo 2: Changing Log Levels ===');
+  Writeln;
+
+  // Configure factory to use DEBUG level
+  TLoggerFactory.UseConsoleLogger(llDebug);
+  LLogger := Log;
+
+  Writeln('** Log level set to DEBUG **');
+  LLogger.Trace('This TRACE message still won''t show');
+  LLogger.Debug('This DEBUG message will now show');
+  LLogger.Info('This INFO message shows');
+
+  Writeln;
+
+  // Change to TRACE level
+  LLogger.SetLevel(llTrace);
+  Writeln('** Log level changed to TRACE **');
+  LLogger.Trace('Now TRACE messages appear!');
+  LLogger.Debug('DEBUG still shows');
+
+  Writeln;
+
+  // Change to WARN level
+  LLogger.SetLevel(llWarn);
+  Writeln('** Log level changed to WARN **');
+  LLogger.Debug('This DEBUG won''t show anymore');
+  LLogger.Info('This INFO won''t show anymore');
+  LLogger.Warn('But WARN still shows');
+  LLogger.Error('And ERROR shows');
+
+  Writeln;
+end;
+
+/// <summary>
+/// Demonstrates the null logger (no output)
+/// </summary>
+procedure DemoNullLogger;
+var
+  LLogger: ILogger;
+begin
+  Writeln('=== Demo 3: Null Logger (no output) ===');
+  Writeln;
+
+  // Switch to null logger
+  TLoggerFactory.UseNullLogger;
+  LLogger := Log;
+
+  Writeln('** Null logger configured - the following log calls produce no output **');
+  LLogger.Info('You should not see this message');
+  LLogger.Error('You should not see this error either');
+  LLogger.Fatal('Even fatal messages are suppressed');
+
+  Writeln('** All logging is disabled **');
+  Writeln;
+
+  // Switch back to console logger for remaining demos
+  TLoggerFactory.UseConsoleLogger(llInfo);
+end;
+
+/// <summary>
+/// Demonstrates using logger in business logic
+/// </summary>
+procedure DemoBusinessLogic;
+begin
+  Writeln('=== Demo 4: Logger in Business Logic ===');
+  Writeln;
+
+  // Reset to debug level to see all messages
+  TLoggerFactory.UseConsoleLogger(llDebug);
+
+  try
+    ProcessOrder(100);
+  except
+    // Swallow exception for demo
+  end;
+
+  Writeln;
+
+  try
+    ProcessOrder(999);  // Will trigger warning
+  except
+    // Swallow exception for demo
+  end;
+
+  Writeln;
+
+  try
+    ProcessOrder(666);  // Will trigger error
+  except
+    on E: Exception do
+      Writeln('Caught exception: ', E.Message);
+  end;
+
+  Writeln;
+end;
+
+/// <summary>
+/// Demonstrates checking if log level is enabled before expensive operations
+/// </summary>
+procedure DemoLevelChecks;
+var
+  LLogger: ILogger;
+  LExpensiveData: string;
+begin
+  Writeln('=== Demo 5: Conditional Logging for Performance ===');
+  Writeln;
+
+  TLoggerFactory.UseConsoleLogger(llInfo);
+  LLogger := Log;
+
+  // Bad practice - always constructs the expensive string
+  Writeln('** Without level check (inefficient) **');
+  LLogger.Debug('Debug data: ' + 'expensive operation result');
+
+  Writeln;
+
+  // Good practice - only constructs string if debug is enabled
+  Writeln('** With level check (efficient) **');
+  if LLogger.IsDebugEnabled then
+  begin
+    LExpensiveData := 'expensive operation result';
+    LLogger.Debug('Debug data: ' + LExpensiveData);
+  end
+  else
+  begin
+    Writeln('(Debug logging is disabled, expensive operation skipped)');
+  end;
+
+  Writeln;
+end;
+
+begin
+  try
+    Writeln('LoggingFacade - Basic Examples');
+    Writeln('==============================');
+    Writeln;
+
+    DemoBasicLogging;
+    DemoLogLevels;
+    DemoNullLogger;
+    DemoBusinessLogic;
+    DemoLevelChecks;
+
+    Writeln('======================================');
+    Writeln('All demos completed successfully!');
+    Writeln('Press ENTER to exit...');
+    Readln;
+  except
+    on E: Exception do
+    begin
+      Writeln('FATAL ERROR: ', E.ClassName, ': ', E.Message);
+      Readln;
+      ExitCode := 1;
+    end;
+  end;
+end.
