@@ -35,7 +35,6 @@ contains
   Logger.Intf in 'src\Logger.Intf.pas',
   Logger.Factory in 'src\Logger.Factory.pas',
   Logger.Default in 'src\Logger.Default.pas',
-  Logger.Null in 'src\Logger.Null.pas',
-  Logger.QuickLogger.Adapter in 'src\Logger.QuickLogger.Adapter.pas';
+  Logger.Null in 'src\Logger.Null.pas';
 
 end.
