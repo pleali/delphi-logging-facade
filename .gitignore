@@ -1,0 +1,100 @@
+# Delphi compiler-generated files
+*.dcu
+*.exe
+*.dll
+*.bpl
+*.bpi
+*.dcp
+*.so
+*.apk
+*.drc
+*.map
+*.dres
+*.rsm
+*.tds
+*.dof
+*.bdsproj
+*.ddp
+*.dproj.local
+*.groupproj.local
+*.identcache
+*.projdata
+*.tvsconfig
+*.dsk
+*.~*
+*.local
+*.stat
+
+# Delphi history and backup files
+__history/
+__recovery/
+*.~*
+
+# Castalia statistics file (since XE7 Castalia is distributed with Delphi)
+*.stat
+
+# Boss dependency manager
+modules/
+
+# Delphi project folders
+Win32/
+Win64/
+OSX32/
+OSX64/
+Android/
+Android64/
+iOS32/
+iOS64/
+Linux64/
+
+# C++ Builder files
+*.hpp
+*.obj
+*.o
+*.pch
+*.tds
+*.ilc
+*.ild
+*.ilf
+*.ils
+*.lib
+*.a
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+*.vsix
+
+# Local History for Visual Studio Code
+.history/
+.ionide/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE specific files
+*.cbk
+*.cfg
+*.dproj.local
+*.dsk
+*.identcache
+*.local
+*.~*
+ModelSupport/
+ModelSupport_*
+
+# Package files
+*.dcp
+*.bpl
