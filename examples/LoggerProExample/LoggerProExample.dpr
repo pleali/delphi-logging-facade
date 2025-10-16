@@ -6,10 +6,10 @@ program LoggerProExample;
 
 uses
   System.SysUtils,
-  Logger.Types in '..\..\src\Logger.Types.pas',
-  Logger.Intf in '..\..\src\Logger.Intf.pas',
-  Logger.Factory in '..\..\src\Logger.Factory.pas',
-  Logger.LoggerPro.Adapter in '..\..\src\Logger.LoggerPro.Adapter.pas',
+  Logger.Types,
+  Logger.Intf,
+  Logger.Factory,
+  Logger.LoggerPro.Adapter,
   LoggerPro,
   LoggerPro.FileAppender,
   LoggerPro.OutputDebugStringAppender;

@@ -6,10 +6,10 @@ program QuickLoggerExample;
 
 uses
   System.SysUtils,
-  Logger.Types in '..\..\src\Logger.Types.pas',
-  Logger.Intf in '..\..\src\Logger.Intf.pas',
-  Logger.Factory in '..\..\src\Logger.Factory.pas',
-  Logger.QuickLogger.Adapter in '..\..\src\Logger.QuickLogger.Adapter.pas',
+  Logger.Types,
+  Logger.Intf,
+  Logger.Factory,
+  Logger.QuickLogger.Adapter,
   Quick.Logger,
   Quick.Logger.Provider.Console,
   Quick.Logger.Provider.Files;

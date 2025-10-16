@@ -26,14 +26,11 @@ package LoggingFacade.QuickLogger;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'LoggingFacade - QuickLogger adapter'}
-{$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires
   rtl,
   LoggingFacade;
-  // Note: Add QuickLogger package dependency when compiling
-  // Typically: QuickLogger or Quick.Logger depending on your installation
 
 contains
   Logger.QuickLogger.Adapter in 'src\Logger.QuickLogger.Adapter.pas';

@@ -6,11 +6,11 @@ program BasicExample;
 
 uses
   System.SysUtils,
-  Logger.Types in '..\..\src\Logger.Types.pas',
-  Logger.Intf in '..\..\src\Logger.Intf.pas',
-  Logger.Default in '..\..\src\Logger.Default.pas',
-  Logger.Null in '..\..\src\Logger.Null.pas',
-  Logger.Factory in '..\..\src\Logger.Factory.pas';
+  Logger.Types,
+  Logger.Intf,
+  Logger.Default,
+  Logger.Null,
+  Logger.Factory;
 
 /// <summary>
 /// Simulates processing some business logic

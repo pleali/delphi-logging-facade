@@ -26,7 +26,6 @@ package LoggingFacade;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'LoggingFacade - Core logging facade'}
-{$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires

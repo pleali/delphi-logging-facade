@@ -26,7 +26,6 @@ package LoggingFacade.LoggerPro;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'LoggingFacade - LoggerPro adapter'}
-{$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires
