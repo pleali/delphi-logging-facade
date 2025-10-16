@@ -68,24 +68,67 @@ The facade pattern allows you to start development with the simple default logge
 
 ## Installation
 
-The framework consists of three BPL packages:
+The framework provides packages (`.dpk` files) that can be used in two ways:
 
-1. **LoggingFacade.dpk** (Core - required)
-   - Contains core interfaces, types, and default implementations
-   - No external dependencies
+### Option 1: Dynamic Linking (Runtime Packages)
 
-2. **LoggingFacade.LoggerPro.dpk** (Optional)
-   - Adapter for LoggerPro
-   - Requires LoggerPro to be installed
+Use BPL files for shared components across multiple applications or to reduce executable size.
 
-3. **LoggingFacade.QuickLogger.dpk** (Optional)
-   - Adapter for QuickLogger
-   - Requires QuickLogger to be installed
+1. **Compile the packages:**
+   - Open `LoggingFacade.dpk` in Delphi and compile it (F9) → generates `LoggingFacade.bpl`
+   - If using LoggerPro: compile `LoggingFacade.LoggerPro.dpk` → generates `LoggingFacade.LoggerPro.bpl`
+   - If using QuickLogger: compile `LoggingFacade.QuickLogger.dpk` → generates `LoggingFacade.QuickLogger.bpl`
 
-**Installation steps:**
-1. Install `LoggingFacade.dpk` (always required)
-2. Install `LoggingFacade.LoggerPro.dpk` if using LoggerPro
-3. Install `LoggingFacade.QuickLogger.dpk` if using QuickLogger
+2. **Add runtime packages to your application's `.dproj` file:**
+
+For basic usage (console logger only):
+```xml
+<Requires>
+  <Package>LoggingFacade</Package>
+  <Package>rtl</Package>
+</Requires>
+```
+
+For LoggerPro integration:
+```xml
+<Requires>
+  <Package>LoggingFacade</Package>
+  <Package>LoggingFacade.LoggerPro</Package>
+  <Package>LoggerPro</Package>
+  <Package>rtl</Package>
+</Requires>
+```
+
+For QuickLogger integration:
+```xml
+<Requires>
+  <Package>LoggingFacade</Package>
+  <Package>LoggingFacade.QuickLogger</Package>
+  <Package>QuickLogger</Package>
+  <Package>rtl</Package>
+</Requires>
+```
+
+### Option 2: Static Linking (Include Source Files)
+
+Include the source files directly in your project for a single executable with no external dependencies.
+
+1. **Add source paths to your project:**
+   - Copy or link the source files from `src/` directory to your project
+   - Alternatively, add the directory to your project's search paths: Project → Options → Source
+
+2. **Use units directly in your application:**
+```delphi
+uses
+  Logger.Intf,
+  Logger.Factory;
+
+begin
+  Log.Info('Application started');
+end;
+```
+
+This approach produces a standalone executable without requiring any BPL files at runtime.
 
 ## Quick Start
 
@@ -107,6 +150,9 @@ begin
   LLogger.Error('Error message');
 end;
 ```
+
+**Required Runtime Packages for this example:**
+- `LoggingFacade` (core package)
 
 ### 2. Configure Log Level
 
@@ -161,6 +207,11 @@ begin
 end;
 ```
 
+**Required Runtime Packages for this example:**
+- `LoggingFacade` (core package)
+- `LoggingFacade.LoggerPro` (LoggerPro adapter package)
+- `LoggerPro` (external logging library package)
+
 ### 5. Use QuickLogger
 
 ```delphi
@@ -182,6 +233,11 @@ begin
   Log.Info('This goes to QuickLogger');
 end;
 ```
+
+**Required Runtime Packages for this example:**
+- `LoggingFacade` (core package)
+- `LoggingFacade.QuickLogger` (QuickLogger adapter package)
+- `QuickLogger` (external logging library package)
 
 ### 6. Named Loggers (Component-Level Logging)
 
@@ -439,7 +495,11 @@ LoggingFacade/
 
 ## Examples
 
+> **Note:** The examples show two approaches: dynamic linking with runtime packages (easiest) or static linking by including source files directly in your project (see Installation section for details).
+
 ### Example 1: Simple Console Application
+
+**Runtime Packages Required:** `LoggingFacade`
 
 ```delphi
 program SimpleApp;
@@ -485,6 +545,8 @@ end.
 ```
 
 ### Example 2: Service Class with Logging
+
+**Runtime Packages Required:** `LoggingFacade`
 
 ```delphi
 uses
@@ -532,6 +594,8 @@ end;
 
 ### Example 3: LoggerPro Integration
 
+**Runtime Packages Required:** `LoggingFacade`, `LoggingFacade.LoggerPro`, `LoggerPro`
+
 ```delphi
 program LoggerProApp;
 
@@ -564,6 +628,8 @@ end.
 ```
 
 ### Example 4: Custom Logger Implementation
+
+**Runtime Packages Required:** `LoggingFacade`
 
 ```delphi
 type
@@ -614,34 +680,51 @@ end;
 
 ## Using Adapter Packages
 
-The framework uses a modular architecture where adapters are provided as separate BPL packages. This allows you to include only the logging libraries you actually use in your project.
+The framework provides adapter packages that can optionally be used for dynamic linking. You can also integrate adapters by including their source files directly in your project for static linking (see Installation section).
 
 ### Package Dependencies
 
 ```
 Your Application
-    ↓ (requires)
-LoggingFacade.dpk (core)
-    ↓ (optionally requires)
-LoggingFacade.LoggerPro.dpk
-    ↓ (requires)
-LoggerPro (external library)
+    ↓ (runtime dependency on)
+LoggingFacade.bpl (core runtime package)
+    ↓ (optionally runtime dependency on)
+LoggingFacade.LoggerPro.bpl (adapter runtime package)
+    ↓ (runtime dependency on)
+LoggerPro.bpl (external library runtime package)
 ```
 
 ### Step-by-Step: Using the LoggerPro Adapter
 
-**1. Install Required Packages**
+#### Option A: Dynamic Linking (Runtime Packages)
 
-First, ensure you have:
+**1. Compile the Packages**
+
+Ensure you have:
 - LoggerPro library installed (from https://github.com/danieleteti/loggerpro)
-- `LoggingFacade.dpk` compiled and installed
-- `LoggingFacade.LoggerPro.dpk` compiled and installed
+- Compile `LoggingFacade.dpk` → produces `LoggingFacade.bpl`
+- Compile `LoggingFacade.LoggerPro.dpk` → produces `LoggingFacade.LoggerPro.bpl`
 
-**2. Add Package Reference to Your Project**
+**2. Add Runtime Packages to Your Project**
 
-In your project's `.dproj` file or via IDE:
-- Add `LoggingFacade` to required packages
-- Add `LoggingFacade.LoggerPro` to required packages (only if using LoggerPro)
+In your project's `.dproj` file:
+
+```xml
+<Requires>
+  <Package>LoggingFacade</Package>
+  <Package>LoggingFacade.LoggerPro</Package>
+  <Package>LoggerPro</Package>
+  <Package>rtl</Package>
+</Requires>
+```
+
+Or use the IDE: Project → Options → Packages → Runtime packages
+
+#### Option B: Static Linking (Include Source Files)
+
+Add the LoggingFacade and LoggerPro adapter source files to your project search paths:
+- Add `LoggingFacade/src` to your project paths
+- Add the adapter unit `Logger.LoggerPro.Adapter.pas` to your project
 
 **3. Use in Your Code**
 
@@ -681,17 +764,35 @@ end.
 
 ### Step-by-Step: Using the QuickLogger Adapter
 
-**1. Install Required Packages**
+#### Option A: Dynamic Linking (Runtime Packages)
 
-First, ensure you have:
+**1. Compile the Packages**
+
+Ensure you have:
 - QuickLogger library installed (from https://github.com/exilon/QuickLogger)
-- `LoggingFacade.dpk` compiled and installed
-- `LoggingFacade.QuickLogger.dpk` compiled and installed
+- Compile `LoggingFacade.dpk` → produces `LoggingFacade.bpl`
+- Compile `LoggingFacade.QuickLogger.dpk` → produces `LoggingFacade.QuickLogger.bpl`
 
-**2. Add Package Reference to Your Project**
+**2. Add Runtime Packages to Your Project**
 
-- Add `LoggingFacade` to required packages
-- Add `LoggingFacade.QuickLogger` to required packages (only if using QuickLogger)
+In your project's `.dproj` file:
+
+```xml
+<Requires>
+  <Package>LoggingFacade</Package>
+  <Package>LoggingFacade.QuickLogger</Package>
+  <Package>QuickLogger</Package>
+  <Package>rtl</Package>
+</Requires>
+```
+
+Or use the IDE: Project → Options → Packages → Runtime packages
+
+#### Option B: Static Linking (Include Source Files)
+
+Add the LoggingFacade and QuickLogger adapter source files to your project search paths:
+- Add `LoggingFacade/src` to your project paths
+- Add the adapter unit `Logger.QuickLogger.Adapter.pas` to your project
 
 **3. Use in Your Code**
 
@@ -755,6 +856,8 @@ TLoggerFactory.UseNullLogger;
 ## Creating a Custom Adapter
 
 To integrate a new logging framework with LoggingFacade, follow these steps:
+
+> **Note on Packages:** You can optionally create a runtime package (`.dpk` file) for your adapter to enable dynamic linking. Alternatively, applications can use your adapter by including the source files directly in their projects (static linking).
 
 ### Step 1: Create the Adapter Unit
 
@@ -906,7 +1009,9 @@ begin
 end;
 ```
 
-### Step 4: Create the BPL Package
+### Step 4: Create the BPL Package (Optional for Dynamic Linking)
+
+If you want to support dynamic linking, create a runtime package `LoggingFacade.YourLibrary.dpk` for your adapter. This is optional - applications can also use your adapter by including the source files directly.
 
 Create `LoggingFacade.YourLibrary.dpk`:
 
@@ -941,14 +1046,26 @@ package LoggingFacade.YourLibrary;
 
 requires
   rtl,
-  LoggingFacade,
-  YourLibraryPackage;  // Your library's package name
+  LoggingFacade,        // Core LoggingFacade package
+  YourLibraryPackage;   // Your library's package name
 
 contains
   Logger.YourLibrary.Adapter in 'src\Logger.YourLibrary.Adapter.pas';
 
 end.
 ```
+
+**For applications using your package dynamically**, add to their `.dproj` file:
+```xml
+<Requires>
+  <Package>LoggingFacade</Package>
+  <Package>LoggingFacade.YourLibrary</Package>
+  <Package>YourLibraryPackage</Package>
+  <Package>rtl</Package>
+</Requires>
+```
+
+**For static linking**, applications simply include the source file in their project instead.
 
 ### Step 5: Create an Example
 
