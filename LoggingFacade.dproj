@@ -137,7 +137,6 @@
         <DCCReference Include="src\Logger.Default.pas"/>
         <DCCReference Include="src\Logger.Null.pas"/>
         <DCCReference Include="src\Logger.Config.pas"/>
-        <DCCReference Include="src\Logger.Context.pas"/>
         <None Include="src\Logger.AutoContext.inc"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

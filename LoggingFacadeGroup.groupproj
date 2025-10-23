@@ -21,6 +21,15 @@
         <Projects Include="examples\QuickLoggerExample\QuickLoggerExample.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="examples\ConfigExample\ConfigExample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -83,14 +92,41 @@
     <Target Name="QuickLoggerExample:Make">
         <MSBuild Projects="examples\QuickLoggerExample\QuickLoggerExample.dproj" Targets="Make"/>
     </Target>
+    <Target Name="ConfigExample">
+        <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj"/>
+    </Target>
+    <Target Name="ConfigExample:Clean">
+        <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ConfigExample:Make">
+        <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DataProcessorLib">
+        <MSBuild Projects="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj"/>
+    </Target>
+    <Target Name="DataProcessorLib:Clean">
+        <MSBuild Projects="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DataProcessorLib:Make">
+        <MSBuild Projects="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="HierarchyApp">
+        <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj"/>
+    </Target>
+    <Target Name="HierarchyApp:Clean">
+        <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="HierarchyApp:Make">
+        <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger;BasicExample;LoggerProExample;QuickLoggerExample"/>
+        <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger;BasicExample;LoggerProExample;QuickLoggerExample;ConfigExample;DataProcessorLib;HierarchyApp"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="LoggingFacade:Clean;LoggingFacade_LoggerPro:Clean;LoggingFacade_QuickLogger:Clean;BasicExample:Clean;LoggerProExample:Clean;QuickLoggerExample:Clean"/>
+        <CallTarget Targets="LoggingFacade:Clean;LoggingFacade_LoggerPro:Clean;LoggingFacade_QuickLogger:Clean;BasicExample:Clean;LoggerProExample:Clean;QuickLoggerExample:Clean;ConfigExample:Clean;DataProcessorLib:Clean;HierarchyApp:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="LoggingFacade:Make;LoggingFacade_LoggerPro:Make;LoggingFacade_QuickLogger:Make;BasicExample:Make;LoggerProExample:Make;QuickLoggerExample:Make"/>
+        <CallTarget Targets="LoggingFacade:Make;LoggingFacade_LoggerPro:Make;LoggingFacade_QuickLogger:Make;BasicExample:Make;LoggerProExample:Make;QuickLoggerExample:Make;ConfigExample:Make;DataProcessorLib:Make;HierarchyApp:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
