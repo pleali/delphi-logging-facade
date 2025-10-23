@@ -6,11 +6,13 @@ program BasicExample;
 
 uses
   System.SysUtils,
+  System.IOUtils,
   Logger.Types,
   Logger.Intf,
   Logger.Default,
   Logger.Null,
-  Logger.Factory;
+  Logger.Factory,
+  Logger.Context;
 
 /// <summary>
 /// Simulates processing some business logic
@@ -254,6 +256,88 @@ begin
   Writeln;
 end;
 
+/// <summary>
+/// Demonstrates automatic configuration loading from .properties files
+/// </summary>
+procedure DemoAutoConfiguration;
+var
+  LConfigFile: string;
+begin
+  Writeln('=== Demo 7: Automatic Configuration (NEW!) ===');
+  Writeln;
+
+  {$IFDEF DEBUG}
+  Writeln('** DEBUG build - looking for logging-debug.properties **');
+  LConfigFile := 'logging-debug.properties';
+  {$ELSE}
+  Writeln('** RELEASE build - looking for logging.properties **');
+  LConfigFile := 'logging.properties';
+  {$ENDIF}
+
+  Writeln('Configuration is loaded automatically on first GetLogger() call');
+  Writeln('Config file: ', LConfigFile);
+  Writeln;
+
+  if TFile.Exists(LConfigFile) or
+     TFile.Exists(TPath.Combine(ExtractFilePath(ParamStr(0)), LConfigFile)) then
+  begin
+    Writeln('Config file found! Logger levels will be loaded from file.');
+    Writeln('Example: Set MyApp.Main=DEBUG in the .properties file');
+  end
+  else
+  begin
+    Writeln('Config file not found - using default levels (INFO)');
+    Writeln('To enable config: Create ' + LConfigFile + ' in the executable directory');
+    Writeln;
+    Writeln('Example content:');
+    Writeln('  root=INFO');
+    Writeln('  MyApp.*=DEBUG');
+    Writeln('  mqtt.*=TRACE');
+  end;
+
+  Writeln;
+  Writeln('For more advanced configuration examples, see ConfigExample.dpr');
+  Writeln;
+end;
+
+/// <summary>
+/// Demonstrates logger contexts for automatic namespace prefixing
+/// </summary>
+procedure DemoLoggerContext;
+var
+  LLogger: ILogger;
+begin
+  Writeln('=== Demo 8: Logger Contexts (NEW!) ===');
+  Writeln;
+
+  Writeln('Contexts allow automatic namespace prefixing:');
+  Writeln;
+
+  Writeln('** Without context **');
+  LLogger := TLoggerFactory.GetLogger('service');
+  LLogger.Info('Plain service logger');
+
+  Writeln;
+  Writeln('** With mqtt.transport context **');
+  TLoggerContext.PushContext('mqtt.transport');
+  try
+    LLogger := TLoggerFactory.GetLogger('service');
+    LLogger.Info('Now becomes mqtt.transport.service');
+
+    LLogger := TLoggerFactory.GetLogger('');
+    LLogger.Info('Empty name becomes mqtt.transport');
+  finally
+    TLoggerContext.PopContext;
+  end;
+
+  Writeln;
+  Writeln('Contexts are useful for library code:');
+  Writeln('- Put {$I Logger.AutoContext.inc} in your unit');
+  Writeln('- Automatically prefixes all loggers in that unit');
+  Writeln('- Configure entire libraries with wildcards (mqtt.*=INFO)');
+  Writeln;
+end;
+
 begin
   try
     Writeln('LoggingFacade - Basic Examples');
@@ -266,9 +350,13 @@ begin
     DemoBusinessLogic;
     DemoLevelChecks;
     DemoNamedLoggers;
+    DemoAutoConfiguration;
+    DemoLoggerContext;
 
     Writeln('======================================');
     Writeln('All demos completed successfully!');
+    Writeln;
+    Writeln('Next: Try ConfigExample.dpr for advanced features!');
     Writeln('Press ENTER to exit...');
     Readln;
   except

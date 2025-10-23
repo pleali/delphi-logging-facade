@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File build-delphi.ps1:*)",
+      "Bash(./HierarchyApp.exe:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

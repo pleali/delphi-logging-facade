@@ -10,9 +10,19 @@ A flexible, SLF4J-inspired logging facade for Delphi that decouples your applica
   - Null logger for testing/disabling logs
   - Adapters for LoggerPro and QuickLogger
 - **Factory Pattern**: Centralized logger creation and configuration
+- **External Configuration**: Logback-style `.properties` files with hierarchical resolution
+  - Automatic loading based on DEBUG/RELEASE builds
+  - Wildcard patterns (`mqtt.*=INFO`)
+  - Most specific rule wins
+  - Runtime reconfiguration support
+- **Logger Contexts**: Automatic namespace prefixing based on unit names
+  - One-line setup: `{$I Logger.AutoContext.inc}`
+  - Transparent namespace detection
+  - Thread-safe context stacking
 - **Zero Dependencies**: Core framework has no external dependencies
 - **Modular Packages**: Separate BPL packages for core and adapters
-- **Thread-Safe**: Factory implementation is thread-safe
+- **Thread-Safe**: Factory, configuration, and contexts are all thread-safe
+- **Cross-Platform**: Compatible with Windows, Linux, macOS
 - **Modern Delphi**: Compatible with Delphi 10.x+
 - **Easy to Extend**: Add your own logger implementations by implementing `ILogger`
 
@@ -313,6 +323,163 @@ The framework supports the following log levels (from most verbose to most sever
 | `llError` | Error messages | Error events that might still allow the app to continue |
 | `llFatal` | Fatal messages | Severe errors that will lead the app to abort |
 
+## Advanced Configuration
+
+### Configuration Files (Logback-style)
+
+The framework supports external configuration files using the Java `.properties` format for portable, cross-platform configuration:
+
+**Automatic Loading:**
+- DEBUG builds: automatically loads `logging-debug.properties`
+- RELEASE builds: automatically loads `logging.properties`
+
+**File Format:**
+```properties
+# Comments start with #
+root=INFO
+
+# Exact logger names
+MyApp.Database=DEBUG
+MyApp.Network=INFO
+
+# Hierarchical patterns with wildcards
+mqtt.*=INFO
+mqtt.transport.ics=TRACE
+
+# The most specific rule wins
+```
+
+**Hierarchical Resolution (inspired by Logback):**
+
+For a logger named `mqtt.transport.ics`, the framework searches in this order:
+1. `mqtt.transport.ics` (exact match)
+2. `mqtt.transport.*` (parent wildcard)
+3. `mqtt.*` (grandparent wildcard)
+4. `root` (fallback)
+
+The most specific matching rule wins.
+
+**Example Configuration:**
+
+```properties
+# logging-debug.properties (development)
+root=DEBUG
+MyApp.*=TRACE
+mqtt.*=DEBUG
+mqtt.core=INFO
+
+# logging.properties (production)
+root=WARN
+MyApp.*=INFO
+mqtt.*=ERROR
+```
+
+**API Methods:**
+
+```delphi
+// Manual loading
+TLoggerFactory.LoadConfig('path/to/config.properties');
+
+// Reload configuration at runtime
+TLoggerFactory.ReloadConfig;
+
+// Set level programmatically
+TLoggerFactory.SetLoggerLevel('mqtt.*', llDebug);
+
+// Query configured level
+LLevel := TLoggerFactory.GetConfiguredLevel('MyApp.Database');
+```
+
+### Logger Contexts (Automatic Namespace Prefixing)
+
+Logger contexts allow automatic prefixing based on unit namespaces, eliminating repetitive prefixes in library code:
+
+**Without Context:**
+```delphi
+// In your library code, you'd have to write:
+FLogger := TLoggerFactory.GetLogger('mqtt.transport.client');
+FLogger := TLoggerFactory.GetLogger('mqtt.transport.server');
+FLogger := TLoggerFactory.GetLogger('mqtt.transport.protocol');
+// Repetitive and error-prone!
+```
+
+**With Automatic Context:**
+```delphi
+unit Mqtt.Transport;
+
+interface
+// ... your interface code ...
+
+implementation
+
+{$I Logger.AutoContext.inc}  // <- One line does everything!
+
+// Now GetLogger() automatically prefixes with 'mqtt.transport'
+procedure TTransport.Connect;
+begin
+  FLogger := TLoggerFactory.GetLogger('client');
+  // Automatically becomes: mqtt.transport.client
+
+  FLogger.Info('Connecting...');
+  // Output: "... INFO [mqtt.transport.client] : Connecting..."
+end;
+```
+
+**How It Works:**
+1. Include `{$I Logger.AutoContext.inc}` in your unit's implementation
+2. The include file automatically detects the unit name using `{$I %UNITNAME%}`
+3. Registers/unregisters the context in initialization/finalization
+4. All `GetLogger()` calls in that unit are automatically prefixed
+
+**Manual Context Control:**
+```delphi
+// Push a context
+TLoggerContext.PushContext('mqtt.transport');
+
+  LLogger := TLoggerFactory.GetLogger('client');
+  // Becomes: mqtt.transport.client
+
+  LLogger := TLoggerFactory.GetLogger('');
+  // Becomes: mqtt.transport (context only)
+
+// Pop the context
+TLoggerContext.PopContext;
+```
+
+**Context Stacking:**
+
+Contexts can be stacked for hierarchical organization:
+
+```delphi
+TLoggerContext.PushContext('mqtt');
+TLoggerContext.PushContext('transport');
+
+LLogger := TLoggerFactory.GetLogger('client');
+// Becomes: mqtt.transport.client
+
+TLoggerContext.PopContext; // Back to 'mqtt'
+```
+
+**Benefits:**
+- **DRY Principle**: Write logger names once, not repeated everywhere
+- **Easy Refactoring**: Rename namespaces without touching logger calls
+- **Wildcards Work**: Configure entire libraries with `mqtt.*=INFO`
+- **Transparent**: No code changes needed, just add one include line
+- **Thread-Safe**: Each thread has its own context stack
+
+**Configuration with Contexts:**
+
+```properties
+# Configure all MQTT loggers at once
+mqtt.*=INFO
+
+# More specific rules for subsystems
+mqtt.transport.*=DEBUG
+mqtt.transport.ics=TRACE
+```
+
+This lets you control logging granularity without changing code!
+
 ## API Reference
 
 ### ILogger Interface
@@ -408,13 +575,20 @@ if LLogger.IsDebugEnabled then
 
 ### 2. Use Format Overloads
 
+**Always use the overloaded methods with arguments instead of pre-formatting strings.** This is critical for performance because the formatting only occurs if the log level is enabled.
+
 ```delphi
-// Preferred - cleaner and more efficient
+// GOOD - Formatting only happens if Info level is enabled
 LLogger.Info('Processing order #%d for user %s', [OrderId, Username]);
 
-// Avoid - less efficient
+// BAD - Format() is always executed, even if Info level is disabled!
+LLogger.Info(Format('Processing order #%d for user %s', [OrderId, Username]));
+
+// ALSO BAD - String concatenation always occurs
 LLogger.Info('Processing order #' + IntToStr(OrderId) + ' for user ' + Username);
 ```
+
+**Why this matters:** When using `Log.Info(Format(...))`, the `Format()` call is executed *before* the method is called, so the string formatting happens even if the Info level is disabled. With `Log.Info('...', [...])`, the internal implementation only formats the string if the log level is enabled, avoiding unnecessary CPU cycles.
 
 ### 3. Log Exceptions Properly
 
@@ -481,10 +655,17 @@ LoggingFacade/
 │   ├── Logger.Default.pas            - Default console logger
 │   ├── Logger.Null.pas               - Null logger (no output)
 │   ├── Logger.Factory.pas            - Logger factory (singleton)
+│   ├── Logger.Config.pas             - Configuration manager (.properties parser)
+│   ├── Logger.Context.pas            - Thread-local context management
+│   ├── Logger.AutoContext.inc        - Auto-context include file
 │   ├── Logger.LoggerPro.Adapter.pas  - LoggerPro adapter
 │   └── Logger.QuickLogger.Adapter.pas - QuickLogger adapter
 ├── examples/
 │   ├── BasicExample/                 - Basic usage examples
+│   ├── ConfigExample/                - Advanced configuration demo
+│   ├── config/                       - Example configuration files
+│   │   ├── logging-debug.properties  - Development config
+│   │   └── logging.properties        - Production config
 │   ├── LoggerProExample/             - LoggerPro integration example
 │   └── QuickLoggerExample/           - QuickLogger integration example
 ├── LoggingFacade.dpk                 - Core package
@@ -496,6 +677,19 @@ LoggingFacade/
 ## Examples
 
 > **Note:** The examples show two approaches: dynamic linking with runtime packages (easiest) or static linking by including source files directly in your project (see Installation section for details).
+
+### Example 0: Configuration & Context Examples
+
+**See:** `examples/ConfigExample/ConfigExample.dpr`
+
+Complete demonstration of advanced features:
+- Automatic configuration loading
+- Hierarchical logger resolution (Logback-style)
+- Runtime level changes and wildcards
+- Logger contexts and namespace prefixing
+- Manual configuration loading
+
+Run this example to see all new configuration features in action.
 
 ### Example 1: Simple Console Application
 
@@ -674,7 +868,7 @@ end;
 ## Performance Considerations
 
 1. **Level Checking**: Always check if a log level is enabled before expensive operations
-2. **Format Strings**: Use the format overloads instead of string concatenation
+2. **Format Overloads**: **Never use `Format()` or string concatenation before calling log methods.** Always use the overloaded methods with arguments (e.g., `Log.Info('User %s', [Name])` instead of `Log.Info(Format('User %s', [Name]))`). This ensures formatting only occurs when the log level is enabled, avoiding unnecessary CPU cycles.
 3. **Null Logger**: Use the null logger in production if logging is not needed
 4. **Async Logging**: Consider using LoggerPro or QuickLogger for async logging in high-performance scenarios
 
@@ -1189,6 +1383,28 @@ This is free and unencumbered software released into the public domain.
 - Compatible with [QuickLogger](https://github.com/exilon/QuickLogger)
 
 ## Version History
+
+- **1.1.0** - Configuration & Context Support
+  - **External Configuration**: Logback-style `.properties` files
+    - Automatic loading based on DEBUG/RELEASE builds
+    - Hierarchical resolution with wildcard patterns
+    - Runtime configuration changes
+  - **Logger Contexts**: Automatic namespace prefixing
+    - Thread-local context stacks
+    - Auto-detection from unit names via `Logger.AutoContext.inc`
+    - Context stacking for hierarchical organization
+  - **New Components**:
+    - `Logger.Config.pas` - Configuration manager
+    - `Logger.Context.pas` - Context management
+    - `Logger.AutoContext.inc` - Auto-context helper
+  - **Extended API**:
+    - `LoadConfig()`, `ReloadConfig()`, `SetLoggerLevel()`
+    - `GetConfiguredLevel()`, `ClearConfig()`
+    - `PushContext()`, `PopContext()`, `BuildLoggerName()`
+  - **Examples**:
+    - New ConfigExample demonstrating all features
+    - Updated BasicExample with config demos
+    - Example `.properties` files for dev/prod
 
 - **1.0.0** - Initial release
   - Core interface and factory

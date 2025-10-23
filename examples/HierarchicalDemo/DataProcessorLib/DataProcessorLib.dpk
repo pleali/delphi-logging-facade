@@ -1,4 +1,4 @@
-package LoggingFacade;
+package DataProcessorLib;
 
 {$R *.res}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
@@ -25,19 +25,18 @@ package LoggingFacade;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggingFacade - Core logging facade'}
+{$DESCRIPTION 'Data Processor Library - Hierarchical Logging Demo'}
+{$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires
   rtl;
 
 contains
-  Logger.Types in 'src\Logger.Types.pas',
-  Logger.Intf in 'src\Logger.Intf.pas',
-  Logger.Factory in 'src\Logger.Factory.pas',
-  Logger.Default in 'src\Logger.Default.pas',
-  Logger.Null in 'src\Logger.Null.pas',
-  Logger.Config in 'src\Logger.Config.pas',
-  Logger.Context in 'src\Logger.Context.pas';
+  DataProcessor.Validation in 'src\DataProcessor.Validation.pas',
+  DataProcessor.Transform.Converter in 'src\DataProcessor.Transform.Converter.pas',
+  DataProcessor.Transform.Mapper in 'src\DataProcessor.Transform.Mapper.pas',
+  DataProcessor.Export.Csv in 'src\DataProcessor.Export.Csv.pas',
+  DataProcessor.Export.Json in 'src\DataProcessor.Export.Json.pas';
 
 end.
