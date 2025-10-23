@@ -15,13 +15,13 @@ A flexible, SLF4J-inspired logging facade for Delphi that decouples your applica
   - Wildcard patterns (`mqtt.*=INFO`)
   - Most specific rule wins
   - Runtime reconfiguration support
-- **Logger Contexts**: Automatic namespace prefixing based on unit names
-  - One-line setup: `{$I Logger.AutoContext.inc}`
-  - Transparent namespace detection
-  - Thread-safe context stacking
+- **Named Loggers**: Component-level logging with Spring Boot-style formatting
+  - Hierarchical logger names (e.g., `MyApp.Database`)
+  - Cached logger instances for performance
+  - Automatic name formatting in output
 - **Zero Dependencies**: Core framework has no external dependencies
 - **Modular Packages**: Separate BPL packages for core and adapters
-- **Thread-Safe**: Factory, configuration, and contexts are all thread-safe
+- **Thread-Safe**: Factory and configuration are thread-safe
 - **Cross-Platform**: Compatible with Windows, Linux, macOS
 - **Modern Delphi**: Compatible with Delphi 10.x+
 - **Easy to Extend**: Add your own logger implementations by implementing `ILogger`
@@ -210,7 +210,7 @@ begin
   // Create LoggerPro logger with file appender
   LLogWriter := BuildLogWriter([TLoggerProFileAppender.Create(10, 5, 'logs')]);
 
-  // Use LoggerPro through our facade
+  // Use LoggerPro through our facade (3 params: name, logWriter, minLevel)
   TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', LLogWriter, llDebug));
 
   Log.Info('This goes to LoggerPro');
@@ -237,7 +237,7 @@ begin
   // Configure QuickLogger
   Quick.Logger.Logger.Providers.Add(TLogFileProvider.Create);
 
-  // Use QuickLogger through our facade
+  // Use QuickLogger through our facade (2 params: name, minLevel)
   TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llInfo));
 
   Log.Info('This goes to QuickLogger');
@@ -390,95 +390,6 @@ TLoggerFactory.SetLoggerLevel('mqtt.*', llDebug);
 LLevel := TLoggerFactory.GetConfiguredLevel('MyApp.Database');
 ```
 
-### Logger Contexts (Automatic Namespace Prefixing)
-
-Logger contexts allow automatic prefixing based on unit namespaces, eliminating repetitive prefixes in library code:
-
-**Without Context:**
-```delphi
-// In your library code, you'd have to write:
-FLogger := TLoggerFactory.GetLogger('mqtt.transport.client');
-FLogger := TLoggerFactory.GetLogger('mqtt.transport.server');
-FLogger := TLoggerFactory.GetLogger('mqtt.transport.protocol');
-// Repetitive and error-prone!
-```
-
-**With Automatic Context:**
-```delphi
-unit Mqtt.Transport;
-
-interface
-// ... your interface code ...
-
-implementation
-
-{$I Logger.AutoContext.inc}  // <- One line does everything!
-
-// Now GetLogger() automatically prefixes with 'mqtt.transport'
-procedure TTransport.Connect;
-begin
-  FLogger := TLoggerFactory.GetLogger('client');
-  // Automatically becomes: mqtt.transport.client
-
-  FLogger.Info('Connecting...');
-  // Output: "... INFO [mqtt.transport.client] : Connecting..."
-end;
-```
-
-**How It Works:**
-1. Include `{$I Logger.AutoContext.inc}` in your unit's implementation
-2. The include file automatically detects the unit name using `{$I %UNITNAME%}`
-3. Registers/unregisters the context in initialization/finalization
-4. All `GetLogger()` calls in that unit are automatically prefixed
-
-**Manual Context Control:**
-```delphi
-// Push a context
-TLoggerContext.PushContext('mqtt.transport');
-
-  LLogger := TLoggerFactory.GetLogger('client');
-  // Becomes: mqtt.transport.client
-
-  LLogger := TLoggerFactory.GetLogger('');
-  // Becomes: mqtt.transport (context only)
-
-// Pop the context
-TLoggerContext.PopContext;
-```
-
-**Context Stacking:**
-
-Contexts can be stacked for hierarchical organization:
-
-```delphi
-TLoggerContext.PushContext('mqtt');
-TLoggerContext.PushContext('transport');
-
-LLogger := TLoggerFactory.GetLogger('client');
-// Becomes: mqtt.transport.client
-
-TLoggerContext.PopContext; // Back to 'mqtt'
-```
-
-**Benefits:**
-- **DRY Principle**: Write logger names once, not repeated everywhere
-- **Easy Refactoring**: Rename namespaces without touching logger calls
-- **Wildcards Work**: Configure entire libraries with `mqtt.*=INFO`
-- **Transparent**: No code changes needed, just add one include line
-- **Thread-Safe**: Each thread has its own context stack
-
-**Configuration with Contexts:**
-
-```properties
-# Configure all MQTT loggers at once
-mqtt.*=INFO
-
-# More specific rules for subsystems
-mqtt.transport.*=DEBUG
-mqtt.transport.ics=TRACE
-```
-
-This lets you control logging granularity without changing code!
 
 ## API Reference
 
@@ -519,6 +430,9 @@ type
     // Configuration
     procedure SetLevel(ALevel: TLogLevel);
     function GetLevel: TLogLevel;
+
+    // Logger identification
+    function GetName: string;
   end;
 ```
 
@@ -550,6 +464,14 @@ type
     // Logger name formatting configuration
     class procedure SetLoggerNameWidth(AWidth: Integer);
     class function GetLoggerNameWidth: Integer;
+
+    // Configuration management
+    class procedure LoadConfig(const AFileName: string = '');
+    class procedure ReloadConfig;
+    class procedure SetLoggerLevel(const ALoggerName: string; ALevel: TLogLevel);
+    class function GetConfiguredLevel(const ALoggerName: string;
+                                      ADefaultLevel: TLogLevel = llInfo): TLogLevel;
+    class procedure ClearConfig;
   end;
 ```
 
@@ -656,8 +578,6 @@ LoggingFacade/
 │   ├── Logger.Null.pas               - Null logger (no output)
 │   ├── Logger.Factory.pas            - Logger factory (singleton)
 │   ├── Logger.Config.pas             - Configuration manager (.properties parser)
-│   ├── Logger.Context.pas            - Thread-local context management
-│   ├── Logger.AutoContext.inc        - Auto-context include file
 │   ├── Logger.LoggerPro.Adapter.pas  - LoggerPro adapter
 │   └── Logger.QuickLogger.Adapter.pas - QuickLogger adapter
 ├── examples/
@@ -678,18 +598,6 @@ LoggingFacade/
 
 > **Note:** The examples show two approaches: dynamic linking with runtime packages (easiest) or static linking by including source files directly in your project (see Installation section for details).
 
-### Example 0: Configuration & Context Examples
-
-**See:** `examples/ConfigExample/ConfigExample.dpr`
-
-Complete demonstration of advanced features:
-- Automatic configuration loading
-- Hierarchical logger resolution (Logback-style)
-- Runtime level changes and wildcards
-- Logger contexts and namespace prefixing
-- Manual configuration loading
-
-Run this example to see all new configuration features in action.
 
 ### Example 1: Simple Console Application
 
@@ -1384,25 +1292,25 @@ This is free and unencumbered software released into the public domain.
 
 ## Version History
 
-- **1.1.0** - Configuration & Context Support
+- **1.1.0** - Configuration & Named Logger Support
   - **External Configuration**: Logback-style `.properties` files
     - Automatic loading based on DEBUG/RELEASE builds
     - Hierarchical resolution with wildcard patterns
     - Runtime configuration changes
-  - **Logger Contexts**: Automatic namespace prefixing
-    - Thread-local context stacks
-    - Auto-detection from unit names via `Logger.AutoContext.inc`
-    - Context stacking for hierarchical organization
+  - **Named Loggers**: Component-level logging
+    - Support for hierarchical logger names
+    - Spring Boot-style formatting
+    - Cached logger instances for performance
   - **New Components**:
     - `Logger.Config.pas` - Configuration manager
-    - `Logger.Context.pas` - Context management
-    - `Logger.AutoContext.inc` - Auto-context helper
   - **Extended API**:
     - `LoadConfig()`, `ReloadConfig()`, `SetLoggerLevel()`
     - `GetConfiguredLevel()`, `ClearConfig()`
-    - `PushContext()`, `PopContext()`, `BuildLoggerName()`
+    - `GetName()` in ILogger interface
+    - `SetLoggerNameWidth()`, `GetLoggerNameWidth()`
+    - `SetNamedLoggerFactory()` for adapter support
   - **Examples**:
-    - New ConfigExample demonstrating all features
+    - ConfigExample demonstrating configuration features
     - Updated BasicExample with config demos
     - Example `.properties` files for dev/prod
 

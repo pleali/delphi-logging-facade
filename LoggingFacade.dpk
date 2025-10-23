@@ -37,7 +37,6 @@ contains
   Logger.Factory in 'src\Logger.Factory.pas',
   Logger.Default in 'src\Logger.Default.pas',
   Logger.Null in 'src\Logger.Null.pas',
-  Logger.Config in 'src\Logger.Config.pas',
-  Logger.Context in 'src\Logger.Context.pas';
+  Logger.Config in 'src\Logger.Config.pas';
 
 end.

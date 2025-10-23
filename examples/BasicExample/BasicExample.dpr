@@ -11,8 +11,7 @@ uses
   Logger.Intf,
   Logger.Default,
   Logger.Null,
-  Logger.Factory,
-  Logger.Context;
+  Logger.Factory;
 
 /// <summary>
 /// Simulates processing some business logic
@@ -300,43 +299,12 @@ begin
   Writeln;
 end;
 
-/// <summary>
-/// Demonstrates logger contexts for automatic namespace prefixing
-/// </summary>
-procedure DemoLoggerContext;
-var
-  LLogger: ILogger;
-begin
-  Writeln('=== Demo 8: Logger Contexts (NEW!) ===');
-  Writeln;
-
-  Writeln('Contexts allow automatic namespace prefixing:');
-  Writeln;
-
-  Writeln('** Without context **');
-  LLogger := TLoggerFactory.GetLogger('service');
-  LLogger.Info('Plain service logger');
-
-  Writeln;
-  Writeln('** With mqtt.transport context **');
-  TLoggerContext.PushContext('mqtt.transport');
-  try
-    LLogger := TLoggerFactory.GetLogger('service');
-    LLogger.Info('Now becomes mqtt.transport.service');
-
-    LLogger := TLoggerFactory.GetLogger('');
-    LLogger.Info('Empty name becomes mqtt.transport');
-  finally
-    TLoggerContext.PopContext;
-  end;
-
-  Writeln;
-  Writeln('Contexts are useful for library code:');
-  Writeln('- Put {$I Logger.AutoContext.inc} in your unit');
-  Writeln('- Automatically prefixes all loggers in that unit');
-  Writeln('- Configure entire libraries with wildcards (mqtt.*=INFO)');
-  Writeln;
-end;
+{ NOTE: Logger Context functionality is not yet implemented.
+  Demo 8 has been disabled. To enable it, implement:
+  - Logger.Context.pas with TLoggerContext class
+  - PushContext/PopContext methods
+  - Logger.AutoContext.inc include file
+}
 
 begin
   try
@@ -351,7 +319,7 @@ begin
     DemoLevelChecks;
     DemoNamedLoggers;
     DemoAutoConfiguration;
-    DemoLoggerContext;
+    // DemoLoggerContext;  // Disabled - Logger.Context not implemented
 
     Writeln('======================================');
     Writeln('All demos completed successfully!');

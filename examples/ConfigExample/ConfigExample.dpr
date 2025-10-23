@@ -10,7 +10,6 @@ uses
   Logger.Types,
   Logger.Intf,
   Logger.Factory,
-  Logger.Context,
   Logger.Config;
 
 /// <summary>
@@ -161,91 +160,17 @@ begin
   Writeln;
 end;
 
-/// <summary>
-/// Simulates a library unit with automatic context
-/// </summary>
-procedure SimulateLibraryWithContext;
-var
-  LLogger: ILogger;
-begin
-  Writeln('=== Demo 5: Automatic Context from Namespace ===');
-  Writeln;
+{ NOTE: Context functionality (Logger.Context) is not yet implemented.
+  The following demos have been disabled until the feature is available:
+  - Demo 5: Automatic Context from Namespace
+  - Demo 6: Context Stacking
 
-  Writeln('Simulating unit: Mqtt.Transport.Ics');
-  Writeln('Unit would have: {$I Logger.AutoContext.inc}');
-  Writeln;
-
-  // Simulate what the unit's initialization would do
-  TLoggerContext.RegisterUnitContext('Mqtt.Transport.Ics');
-  try
-    Writeln('** Inside Mqtt.Transport.Ics unit context **');
-    Writeln;
-
-    // When this unit calls GetLogger('client'), it automatically becomes
-    // 'mqtt.transport.ics.client' due to the context
-    LLogger := TLoggerFactory.GetLogger('client');
-    // The logger name is now: mqtt.transport.ics.client
-
-    LLogger.Info('Connection established (from mqtt.transport.ics.client)');
-    LLogger.Debug('Socket opened on port 1883');
-
-    // GetLogger('') in this context becomes 'mqtt.transport.ics'
-    LLogger := TLoggerFactory.GetLogger('');
-    LLogger.Info('Transport layer initialized (from mqtt.transport.ics)');
-
-    Writeln;
-  finally
-    // Unit's finalization would do this
-    TLoggerContext.UnregisterUnitContext;
-  end;
-
-  Writeln('** After leaving unit context **');
-  LLogger := TLoggerFactory.GetLogger('client');
-  LLogger.Info('Now just plain ''client'' logger');
-
-  Writeln;
-end;
-
-/// <summary>
-/// Demonstrates context stacking
-/// </summary>
-procedure DemoContextStacking;
-var
-  LLogger: ILogger;
-begin
-  Writeln('=== Demo 6: Context Stacking ===');
-  Writeln;
-
-  Writeln('** No context **');
-  LLogger := TLoggerFactory.GetLogger('component');
-  LLogger.Info('From plain ''component''');
-
-  Writeln;
-  Writeln('** Push context: mqtt **');
-  TLoggerContext.PushContext('mqtt');
-  LLogger := TLoggerFactory.GetLogger('component');
-  LLogger.Info('From ''mqtt.component''');
-
-  Writeln;
-  Writeln('** Push context: transport **');
-  TLoggerContext.PushContext('transport');
-  LLogger := TLoggerFactory.GetLogger('component');
-  LLogger.Info('From ''mqtt.transport.component''');
-
-  Writeln;
-  Writeln('** Pop context (back to mqtt) **');
-  TLoggerContext.PopContext;
-  LLogger := TLoggerFactory.GetLogger('component');
-  LLogger.Info('From ''mqtt.component'' again');
-
-  Writeln;
-  Writeln('** Pop context (back to root) **');
-  TLoggerContext.PopContext;
-  LLogger := TLoggerFactory.GetLogger('component');
-  LLogger.Info('Back to plain ''component''');
-
-  Writeln;
-end;
+  To enable these demos, implement Logger.Context.pas with:
+  - TLoggerContext class
+  - RegisterUnitContext/UnregisterUnitContext methods
+  - PushContext/PopContext methods
+  - Create Logger.AutoContext.inc include file
+}
 
 /// <summary>
 /// Demonstrates manual config loading
@@ -309,20 +234,20 @@ end;
 
 begin
   try
-    Writeln('LoggingFacade - Configuration & Context Examples');
-    Writeln('================================================');
+    Writeln('LoggingFacade - Configuration Examples');
+    Writeln('========================================');
     Writeln;
 
     DemoAutoConfig;
     DemoHierarchicalConfig;
     DemoRuntimeLevelChange;
     DemoWildcardConfig;
-    DemoContextStacking;
-    SimulateLibraryWithContext;
+    // DemoContextStacking;           // Disabled - Logger.Context not implemented
+    // SimulateLibraryWithContext;    // Disabled - Logger.Context not implemented
     DemoManualConfigLoad;
     DemoQueryConfiguredLevels;
 
-    Writeln('=================================================');
+    Writeln('========================================');
     Writeln('All demos completed successfully!');
     Writeln;
     Writeln('Note: Copy logging-debug.properties or logging.properties');

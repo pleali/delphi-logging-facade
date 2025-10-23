@@ -3,7 +3,11 @@
     "allow": [
       "Bash(git push:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File build-delphi.ps1:*)",
-      "Bash(./HierarchyApp.exe:*)"
+      "Bash(./HierarchyApp.exe:*)",
+      "Bash(find:*)",
+      "Bash(dir:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File build-delphi.ps1 examples/BasicExample/BasicExample.dpr -Clean)"
     ],
     "deny": [],
     "ask": []

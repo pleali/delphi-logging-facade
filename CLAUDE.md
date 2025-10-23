@@ -123,6 +123,130 @@ powershell -ExecutionPolicy Bypass -File build-delphi.ps1 examples\delphi\agent-
 
 ---
 
+## Architecture Documentation
+
+### Core Design Principles
+
+#### 1. Facade Pattern Implementation
+
+The LoggingFacade implements the **Facade design pattern** to provide a unified interface to different logging subsystems:
+
+```
+Application Code
+    ↓ (depends on)
+ILogger Interface (facade)
+    ↓ (implemented by)
+Concrete Adapters → External Libraries
+```
+
+**Key Benefits:**
+- **Decoupling**: Application code never directly depends on specific logging libraries
+- **Flexibility**: Switch logging implementations without changing application code
+- **Testability**: Easy to mock ILogger for unit testing
+- **Evolution**: Can upgrade or replace logging libraries transparently
+
+#### 2. Factory Pattern with Singleton
+
+The `TLoggerFactory` implements both Factory and Singleton patterns:
+
+- **Factory Pattern**: Creates logger instances based on configuration
+- **Singleton Pattern**: Maintains single global logger instance
+- **Thread-Safe**: Uses critical sections for thread-safe access
+
+#### 3. Adapter Pattern for External Libraries
+
+Each external logging library (LoggerPro, QuickLogger) has an adapter that:
+- Implements the `ILogger` interface
+- Translates facade calls to library-specific calls
+- Maps log levels between systems
+- Handles library-specific configuration
+
+### Component Architecture
+
+#### Core Components (LoggingFacade.dpk)
+
+1. **Logger.Types.pas**
+   - Defines `TLogLevel` enumeration
+   - Common type definitions
+   - Helper functions for level comparison
+
+2. **Logger.Intf.pas**
+   - Defines the core `ILogger` interface
+   - All logging methods with overloads
+   - Level checking methods
+   - Configuration methods
+
+3. **Logger.Factory.pas**
+   - Singleton factory implementation
+   - Thread-safe logger creation
+   - Named logger support with caching
+   - Configuration management integration
+
+4. **Logger.Default.pas**
+   - Default console logger implementation
+   - Colored output support
+   - Thread-safe console writing
+   - Configurable formatting
+
+5. **Logger.Null.pas**
+   - Null object pattern implementation
+   - No-op logger for testing/disabled logging
+   - Zero overhead when logging disabled
+
+6. **Logger.Config.pas**
+   - Properties file parser
+   - Hierarchical configuration resolution
+   - Wildcard pattern matching
+   - Runtime configuration updates
+
+7. **Logger.Context.pas**
+   - Thread-local context management
+   - Context stack for nested namespaces
+   - Automatic namespace prefixing
+
+8. **Logger.AutoContext.inc**
+   - Include file for automatic context
+   - Uses compiler directives for unit name detection
+   - Automatic initialization/finalization
+
+#### Adapter Components
+
+**LoggingFacade.LoggerPro.dpk:**
+- `Logger.LoggerPro.Adapter.pas`: Bridges ILogger to LoggerPro's ILogWriter
+
+**LoggingFacade.QuickLogger.dpk:**
+- `Logger.QuickLogger.Adapter.pas`: Bridges ILogger to QuickLogger's global logger
+
+### Thread Safety
+
+All core components are designed to be thread-safe:
+
+1. **TLoggerFactory**: Uses critical section for all operations
+2. **TConsoleLogger**: Synchronizes console output
+3. **TLoggerConfig**: Thread-safe configuration access
+4. **TLoggerContext**: Thread-local storage for contexts
+5. **Adapters**: Rely on underlying library's thread safety
+
+### Performance Optimizations
+
+1. **Level Checking**: Always check if level is enabled before formatting
+2. **Lazy Formatting**: Format strings only when needed
+3. **Logger Caching**: Named loggers are cached after first creation
+4. **Null Logger**: Zero overhead when logging disabled
+5. **Configuration Caching**: Parsed configurations are cached
+
+### Extension Points
+
+The architecture provides several extension points:
+
+1. **Custom Logger Implementations**: Implement `ILogger` interface
+2. **Custom Factories**: Use `SetLoggerFactory` for custom creation logic
+3. **Custom Adapters**: Create adapters for new logging libraries
+4. **Configuration Providers**: Extend configuration system
+5. **Context Providers**: Custom context resolution strategies
+
+---
+
 ## Coding Standards
 
 ### Project Files (.dpr)
