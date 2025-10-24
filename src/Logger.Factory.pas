@@ -166,6 +166,13 @@ type
     /// Thread-safe.
     /// </summary>
     class procedure ClearConfig; static;
+
+    /// <summary>
+    /// Checks if a logger instance has already been created.
+    /// Returns false if no logger exists yet (without creating one).
+    /// Thread-safe.
+    /// </summary>
+    class function HasLogger: Boolean; static;
   end;
 
   /// <summary>
@@ -518,6 +525,11 @@ begin
   finally
     FLock.Leave;
   end;
+end;
+
+class function TLoggerFactory.HasLogger: Boolean;
+begin
+  Result := FRootLogger <> nil;
 end;
 
 { Global function }

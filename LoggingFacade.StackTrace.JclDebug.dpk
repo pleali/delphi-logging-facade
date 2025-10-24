@@ -26,8 +26,8 @@ package LoggingFacade.StackTrace.JclDebug;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'LoggingFacade - JclDebug stack trace adapter'}
-{$IMPLICITBUILD ON}
 {$RUNONLY}
+{$IMPLICITBUILD ON}
 
 requires
   rtl,

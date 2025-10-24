@@ -489,37 +489,68 @@ function Log: ILogger;
 
 ## Stack Trace Capture (Optional)
 
-The framework supports optional stack trace capture for exceptions using the JCL Debug library. This feature is completely optional and adds zero overhead when not used.
+The framework supports optional stack trace capture for exceptions using the JCL Debug library. Stack trace providers are **automatically loaded at runtime** via dynamic BPL loading (Windows only).
+
+### Key Features
+
+- **Zero Configuration**: BPL providers are automatically detected and loaded
+- **Zero Dependencies**: Core framework has no compile-time dependency on JCL
+- **Flexible Deployment**: Deploy with or without stack trace support
+- **Security**: In Release mode, BPL must be in exe directory
+- **Graceful Degradation**: Application works normally without BPL
 
 ### Requirements
 
+- **Windows**: Dynamic loading is Windows-only (uses LoadPackage API)
 - **JEDI Code Library (JCL)**: Download from https://github.com/project-jedi/jcl
 - **Debug Information**: Best results with detailed map files or JCL debug data
 
 ### Installation
 
-**Option 1: Dynamic Linking (Runtime Package)**
+**Recommended: Dynamic BPL Loading (Automatic)**
 
 1. Install JCL library
 2. Compile `LoggingFacade.StackTrace.JclDebug.dpk` → produces `LoggingFacade.StackTrace.JclDebug.bpl`
-3. Add runtime package to your project:
+3. **For Release builds**: Copy BPL to your exe directory
+4. **For Debug builds**: BPL can be anywhere in Windows search path
 
-```xml
-<Requires>
-  <Package>LoggingFacade</Package>
-  <Package>LoggingFacade.StackTrace.JclDebug</Package>
-  <Package>Jcl</Package>
-  <Package>rtl</Package>
-</Requires>
-```
+**That's it!** The stack trace provider is automatically loaded at startup.
 
-**Option 2: Static Linking (Include Source)**
+**Alternative: Static Linking**
 
 Include the source files directly in your project:
 - Add `Logger.StackTrace.pas` (already in core package)
 - Add `Logger.StackTrace.JclDebug.pas` to your project
+- Manually call: `TStackTraceManager.SetProvider(TJclDebugStackTraceProvider.Create)`
 
 ### Usage
+
+**Automatic Loading (Recommended)**
+
+```delphi
+uses
+  Logger.Factory,
+  Logger.StackTrace;  // That's all you need!
+
+begin
+  // Configure logger
+  TLoggerFactory.UseConsoleLogger(llDebug);
+
+  // Stack trace provider automatically loads from BPL if available
+  // No manual configuration needed!
+
+  // Use logger normally - exceptions include stack traces automatically
+  try
+    DoSomething;
+  except
+    on E: Exception do
+      Log.Error('Operation failed', E);
+      // Output includes full stack trace if BPL was loaded
+  end;
+end;
+```
+
+**Manual Loading (Advanced)**
 
 ```delphi
 uses
@@ -531,18 +562,39 @@ begin
   // Configure logger
   TLoggerFactory.UseConsoleLogger(llDebug);
 
-  // Enable stack trace capture with JclDebug
+  // Manually set provider (static linking)
   TStackTraceManager.SetProvider(TJclDebugStackTraceProvider.Create);
   TStackTraceManager.Enable;
 
-  // Now exceptions will include stack traces
-  try
-    DoSomething;
-  except
-    on E: Exception do
-      Log.Error('Operation failed', E);
-      // Output will include full stack trace showing call chain
-  end;
+  // Use logger normally
+end;
+```
+
+### Dynamic Loading Behavior
+
+The stack trace system automatically tries to load `LoggingFacade.StackTrace.JclDebug.bpl` at application startup.
+
+**Release Mode** (`{$IFNDEF DEBUG}` or no debugger attached):
+- BPL **must** be in the same directory as the executable
+- If BPL is found elsewhere: **Warning logged** + BPL unloaded + Stack traces disabled
+- If BPL not found: Silent (normal deployment without stack traces)
+
+**Debug Mode** (`{$IFDEF DEBUG}` or debugger attached):
+- BPL can be anywhere in Windows DLL search path
+- More flexible for development environments
+- If BPL not found: Silent (normal for development)
+
+**Check Loading Status:**
+```delphi
+if TStackTraceManager.IsEnabled then
+  WriteLn('Stack traces enabled')
+else
+begin
+  WriteLn('Stack traces disabled');
+  {$IFDEF MSWINDOWS}
+  if TStackTraceManager.GetLastError <> '' then
+    WriteLn('Error: ', TStackTraceManager.GetLastError);
+  {$ENDIF}
 end;
 ```
 

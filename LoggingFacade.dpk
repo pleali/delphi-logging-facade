@@ -26,6 +26,7 @@ package LoggingFacade;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'LoggingFacade - Core logging facade'}
+{$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires
@@ -39,6 +40,7 @@ contains
   Logger.Null in 'src\Logger.Null.pas',
   Logger.Config in 'src\Logger.Config.pas',
   Logger.StackTrace in 'src\Logger.StackTrace.pas',
+  Logger.StackTrace.Loader in 'src\Logger.StackTrace.Loader.pas',
   Logger.StackTrace.Mock in 'src\Logger.StackTrace.Mock.pas';
 
 end.

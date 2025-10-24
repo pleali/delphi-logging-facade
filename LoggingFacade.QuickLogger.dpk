@@ -26,6 +26,7 @@ package LoggingFacade.QuickLogger;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'LoggingFacade - QuickLogger adapter'}
+{$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires

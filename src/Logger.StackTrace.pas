@@ -40,6 +40,12 @@ type
   end;
 
   /// <summary>
+  /// Provider class type for registry pattern.
+  /// Providers register their class, which is instantiated lazily on first use.
+  /// </summary>
+  TStackTraceProviderClass = class of TInterfacedObject;
+
+  /// <summary>
   /// Singleton manager for stack trace providers.
   /// Provides centralized configuration and access to stack trace functionality.
   /// Thread-safe for concurrent access.
@@ -48,11 +54,13 @@ type
   private
     class var FInstance: TStackTraceManager;
     class var FLock: TCriticalSection;
+    class var FProviderClass: TStackTraceProviderClass;
 
     FProvider: IStackTraceProvider;
     FEnabled: Boolean;
 
     constructor Create;
+    class function GetProvider: IStackTraceProvider; static;
   public
     class constructor ClassCreate;
     class destructor ClassDestroy;
@@ -63,7 +71,15 @@ type
     class function Instance: TStackTraceManager;
 
     /// <summary>
-    /// Sets the stack trace provider implementation.
+    /// Registers a provider class for lazy instantiation.
+    /// The provider instance is created on first use.
+    /// </summary>
+    /// <param name="AClass">The provider class to register</param>
+    class procedure RegisterProviderClass(AClass: TStackTraceProviderClass);
+
+    /// <summary>
+    /// Sets the stack trace provider implementation directly.
+    /// This overrides any registered provider class.
     /// </summary>
     /// <param name="AProvider">The provider to use for stack trace capture</param>
     class procedure SetProvider(AProvider: IStackTraceProvider);
@@ -110,12 +126,16 @@ type
 
 implementation
 
+uses
+  Logger.Factory;
+
 { TStackTraceManager }
 
 class constructor TStackTraceManager.ClassCreate;
 begin
   FLock := TCriticalSection.Create;
   FInstance := nil;
+  FProviderClass := nil;
 end;
 
 class destructor TStackTraceManager.ClassDestroy;
@@ -144,6 +164,50 @@ begin
     end;
   end;
   Result := FInstance;
+end;
+
+class procedure TStackTraceManager.RegisterProviderClass(AClass: TStackTraceProviderClass);
+begin
+  FLock.Enter;
+  try
+    FProviderClass := AClass;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+class function TStackTraceManager.GetProvider: IStackTraceProvider;
+begin
+  FLock.Enter;
+  try
+    // Lazy initialization: create provider instance on first use
+    if (Instance.FProvider = nil) and (FProviderClass <> nil) then
+    begin
+      try
+        Instance.FProvider := FProviderClass.Create as IStackTraceProvider;
+        if (Instance.FProvider <> nil) and Instance.FProvider.IsAvailable then
+          Instance.FEnabled := True;
+      except
+        on E: Exception do
+        begin
+          // Log error if logger available
+          if TLoggerFactory.HasLogger then
+          begin
+            try
+              TLoggerFactory.GetLogger.Error(
+                Format('Failed to create stack trace provider: %s', [E.Message]));
+            except
+              // Ignore logging errors
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    Result := Instance.FProvider;
+  finally
+    FLock.Leave;
+  end;
 end;
 
 class procedure TStackTraceManager.SetProvider(AProvider: IStackTraceProvider);
@@ -179,46 +243,81 @@ begin
 end;
 
 class function TStackTraceManager.IsEnabled: Boolean;
+var
+  Provider: IStackTraceProvider;
 begin
+  Provider := GetProvider;  // Lazy initialization
   FLock.Enter;
   try
     Result := Instance.FEnabled and
-              (Instance.FProvider <> nil) and
-              Instance.FProvider.IsAvailable;
+              (Provider <> nil) and
+              Provider.IsAvailable;
   finally
     FLock.Leave;
   end;
 end;
 
 class function TStackTraceManager.GetStackTrace(AException: Exception): string;
+var
+  Provider: IStackTraceProvider;
 begin
   Result := '';
 
   if not IsEnabled then
     Exit;
 
-  FLock.Enter;
-  try
-    if Instance.FProvider <> nil then
-      Result := Instance.FProvider.GetStackTrace(AException);
-  finally
-    FLock.Leave;
+  Provider := GetProvider;
+  if Provider <> nil then
+  begin
+    try
+      Result := Provider.GetStackTrace(AException);
+    except
+      on E: Exception do
+      begin
+        // Log error if logger available
+        if TLoggerFactory.HasLogger then
+        begin
+          try
+            TLoggerFactory.GetLogger.Error(
+              Format('Exception in GetStackTrace: %s', [E.Message]));
+          except
+            // Ignore logging errors
+          end;
+        end;
+      end;
+    end;
   end;
 end;
 
 class function TStackTraceManager.GetCurrentStackTrace: string;
+var
+  Provider: IStackTraceProvider;
 begin
   Result := '';
 
   if not IsEnabled then
     Exit;
 
-  FLock.Enter;
-  try
-    if Instance.FProvider <> nil then
-      Result := Instance.FProvider.GetCurrentStackTrace;
-  finally
-    FLock.Leave;
+  Provider := GetProvider;
+  if Provider <> nil then
+  begin
+    try
+      Result := Provider.GetCurrentStackTrace;
+    except
+      on E: Exception do
+      begin
+        // Log error if logger available
+        if TLoggerFactory.HasLogger then
+        begin
+          try
+            TLoggerFactory.GetLogger.Error(
+              Format('Exception in GetCurrentStackTrace: %s', [E.Message]));
+          except
+            // Ignore logging errors
+          end;
+        end;
+      end;
+    end;
   end;
 end;
 

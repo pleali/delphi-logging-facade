@@ -81,6 +81,7 @@
         <VerInfo_Locale>1036</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
+        <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSX64)'!=''">
         <DCC_UsePackage>rtl;$(DCC_UsePackage)</DCC_UsePackage>
@@ -114,6 +115,7 @@
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
         <DCC_RangeChecking>true</DCC_RangeChecking>
         <DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_OSX64)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
@@ -137,6 +139,8 @@
         <DCCReference Include="src\Logger.Default.pas"/>
         <DCCReference Include="src\Logger.Null.pas"/>
         <DCCReference Include="src\Logger.Config.pas"/>
+        <DCCReference Include="src\Logger.StackTrace.pas"/>
+        <DCCReference Include="src\Logger.StackTrace.Mock.pas"/>
         <None Include="src\Logger.AutoContext.inc"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

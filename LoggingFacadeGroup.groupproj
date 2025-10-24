@@ -27,6 +27,9 @@
         <Projects Include="examples\StackTraceTest\StackTraceTest.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="examples\ConfigExample\ConfigExample.dproj">
             <Dependencies/>
         </Projects>
@@ -116,6 +119,15 @@
     <Target Name="StackTraceTest:Make">
         <MSBuild Projects="examples\StackTraceTest\StackTraceTest.dproj" Targets="Make"/>
     </Target>
+    <Target Name="DynamicLoadingTest">
+        <MSBuild Projects="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj"/>
+    </Target>
+    <Target Name="DynamicLoadingTest:Clean">
+        <MSBuild Projects="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DynamicLoadingTest:Make">
+        <MSBuild Projects="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj" Targets="Make"/>
+    </Target>
     <Target Name="ConfigExample">
         <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj"/>
     </Target>
@@ -144,13 +156,13 @@
         <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger;LoggingFacade_StackTrace_JclDebug;BasicExample;LoggerProExample;QuickLoggerExample;StackTraceTest;ConfigExample;DataProcessorLib;HierarchyApp"/>
+        <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger;LoggingFacade_StackTrace_JclDebug;BasicExample;LoggerProExample;QuickLoggerExample;StackTraceTest;DynamicLoadingTest;ConfigExample;DataProcessorLib;HierarchyApp"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="LoggingFacade:Clean;LoggingFacade_LoggerPro:Clean;LoggingFacade_QuickLogger:Clean;LoggingFacade_StackTrace_JclDebug:Clean;BasicExample:Clean;LoggerProExample:Clean;QuickLoggerExample:Clean;StackTraceTest:Clean;ConfigExample:Clean;DataProcessorLib:Clean;HierarchyApp:Clean"/>
+        <CallTarget Targets="LoggingFacade:Clean;LoggingFacade_LoggerPro:Clean;LoggingFacade_QuickLogger:Clean;LoggingFacade_StackTrace_JclDebug:Clean;BasicExample:Clean;LoggerProExample:Clean;QuickLoggerExample:Clean;StackTraceTest:Clean;DynamicLoadingTest:Clean;ConfigExample:Clean;DataProcessorLib:Clean;HierarchyApp:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="LoggingFacade:Make;LoggingFacade_LoggerPro:Make;LoggingFacade_QuickLogger:Make;LoggingFacade_StackTrace_JclDebug:Make;BasicExample:Make;LoggerProExample:Make;QuickLoggerExample:Make;StackTraceTest:Make;ConfigExample:Make;DataProcessorLib:Make;HierarchyApp:Make"/>
+        <CallTarget Targets="LoggingFacade:Make;LoggingFacade_LoggerPro:Make;LoggingFacade_QuickLogger:Make;LoggingFacade_StackTrace_JclDebug:Make;BasicExample:Make;LoggerProExample:Make;QuickLoggerExample:Make;StackTraceTest:Make;DynamicLoadingTest:Make;ConfigExample:Make;DataProcessorLib:Make;HierarchyApp:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

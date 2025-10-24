@@ -172,6 +172,9 @@ begin
 end;
 
 initialization
+  // Register provider class for lazy instantiation
+  TStackTraceManager.RegisterProviderClass(TJclDebugStackTraceProvider);
+
   // Enable JCL exception tracking automatically when this unit is used
   // This is required for stack traces to be captured for exceptions
   {$IFDEF MSWINDOWS}

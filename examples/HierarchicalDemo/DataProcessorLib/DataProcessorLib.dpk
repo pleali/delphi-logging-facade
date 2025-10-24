@@ -30,7 +30,8 @@ package DataProcessorLib;
 {$IMPLICITBUILD ON}
 
 requires
-  rtl;
+  rtl,
+  loggingFacade;
 
 contains
   DataProcessor.Validation in 'src\DataProcessor.Validation.pas',
