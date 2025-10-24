@@ -7,7 +7,8 @@ uses
   Logger.Types,
   Logger.Intf,
   Logger.Factory,
-  Logger.StackTrace;
+  Logger.StackTrace,
+  Logger.StackTrace.Loader;  // Dynamic BPL loading
 
 procedure Level3_ThrowException;
 begin
@@ -54,12 +55,7 @@ begin
     else
     begin
       Writeln('No stack trace provider loaded.');
-      {$IFDEF MSWINDOWS}
-      if TStackTraceManager.GetLastError <> '' then
-      begin
-        Writeln('Last error: ', TStackTraceManager.GetLastError);
-      end;
-      {$ENDIF}
+      Writeln('Make sure LoggingFacade.StackTrace.JclDebug.bpl is in the exe directory.');
       Writeln;
     end;
 

@@ -32,6 +32,11 @@ type
     procedure Trace(const AMessage: string; const AArgs: array of const); overload;
 
     /// <summary>
+    /// Logs a TRACE level message with format arguments and exception information.
+    /// </summary>
+    procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
+
+    /// <summary>
     /// Logs a DEBUG level message.
     /// </summary>
     procedure Debug(const AMessage: string); overload;
@@ -40,6 +45,11 @@ type
     /// Logs a DEBUG level message with format arguments.
     /// </summary>
     procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+
+    /// <summary>
+    /// Logs a DEBUG level message with format arguments and exception information.
+    /// </summary>
+    procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     /// <summary>
     /// Logs an INFO level message.
@@ -52,6 +62,11 @@ type
     procedure Info(const AMessage: string; const AArgs: array of const); overload;
 
     /// <summary>
+    /// Logs an INFO level message with format arguments and exception information.
+    /// </summary>
+    procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
+
+    /// <summary>
     /// Logs a WARN level message.
     /// </summary>
     procedure Warn(const AMessage: string); overload;
@@ -60,6 +75,11 @@ type
     /// Logs a WARN level message with format arguments.
     /// </summary>
     procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+
+    /// <summary>
+    /// Logs a WARN level message with format arguments and exception information.
+    /// </summary>
+    procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     /// <summary>
     /// Logs an ERROR level message.
@@ -77,6 +97,11 @@ type
     procedure Error(const AMessage: string; AException: Exception); overload;
 
     /// <summary>
+    /// Logs an ERROR level message with format arguments and exception information.
+    /// </summary>
+    procedure Error(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
+
+    /// <summary>
     /// Logs a FATAL level message.
     /// </summary>
     procedure Fatal(const AMessage: string); overload;
@@ -90,6 +115,11 @@ type
     /// Logs a FATAL level message with exception information.
     /// </summary>
     procedure Fatal(const AMessage: string; AException: Exception); overload;
+
+    /// <summary>
+    /// Logs a FATAL level message with format arguments and exception information.
+    /// </summary>
+    procedure Fatal(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     // Level checking methods
 

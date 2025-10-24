@@ -10,6 +10,7 @@ uses
   System.SysUtils,
   Logger.Intf,
   Logger.Types,
+  Logger.StackTrace,
   Quick.Logger;  // External dependency: QuickLogger library
 
 type
@@ -36,23 +37,29 @@ type
     // ILogger implementation
     procedure Trace(const AMessage: string); overload;
     procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+    procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Debug(const AMessage: string); overload;
     procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+    procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Info(const AMessage: string); overload;
     procedure Info(const AMessage: string; const AArgs: array of const); overload;
+    procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Warn(const AMessage: string); overload;
     procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+    procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Error(const AMessage: string); overload;
     procedure Error(const AMessage: string; const AArgs: array of const); overload;
     procedure Error(const AMessage: string; AException: Exception); overload;
+    procedure Error(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Fatal(const AMessage: string); overload;
     procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
     procedure Fatal(const AMessage: string; AException: Exception); overload;
+    procedure Fatal(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     function IsTraceEnabled: Boolean;
     function IsDebugEnabled: Boolean;
@@ -148,8 +155,7 @@ begin
   if IsLevelEnabled(Logger.Types.llError) then
   begin
     if AException <> nil then
-      Quick.Logger.Logger.Add(Format('%s - Exception: %s: %s',
-        [AMessage, AException.ClassName, AException.Message]), etError)
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(AMessage, AException), etError)
     else
       Quick.Logger.Logger.Add(AMessage, etError);
   end;
@@ -172,10 +178,75 @@ begin
   if IsLevelEnabled(Logger.Types.llFatal) then
   begin
     if AException <> nil then
-      Quick.Logger.Logger.Add(Format('%s - Exception: %s: %s',
-        [AMessage, AException.ClassName, AException.Message]), etCritical)
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(AMessage, AException), etCritical)
     else
       Quick.Logger.Logger.Add(AMessage, etCritical);
+  end;
+end;
+
+procedure TQuickLoggerAdapter.Trace(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if IsLevelEnabled(Logger.Types.llTrace) then
+  begin
+    if AException <> nil then
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), etTrace)
+    else
+      Quick.Logger.Logger.Add(Format(AMessage, AArgs), etTrace);
+  end;
+end;
+
+procedure TQuickLoggerAdapter.Debug(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if IsLevelEnabled(Logger.Types.llDebug) then
+  begin
+    if AException <> nil then
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), etDebug)
+    else
+      Quick.Logger.Logger.Add(Format(AMessage, AArgs), etDebug);
+  end;
+end;
+
+procedure TQuickLoggerAdapter.Info(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if IsLevelEnabled(Logger.Types.llInfo) then
+  begin
+    if AException <> nil then
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), etInfo)
+    else
+      Quick.Logger.Logger.Add(Format(AMessage, AArgs), etInfo);
+  end;
+end;
+
+procedure TQuickLoggerAdapter.Warn(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if IsLevelEnabled(Logger.Types.llWarn) then
+  begin
+    if AException <> nil then
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), etWarning)
+    else
+      Quick.Logger.Logger.Add(Format(AMessage, AArgs), etWarning);
+  end;
+end;
+
+procedure TQuickLoggerAdapter.Error(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if IsLevelEnabled(Logger.Types.llError) then
+  begin
+    if AException <> nil then
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), etError)
+    else
+      Quick.Logger.Logger.Add(Format(AMessage, AArgs), etError);
+  end;
+end;
+
+procedure TQuickLoggerAdapter.Fatal(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if IsLevelEnabled(Logger.Types.llFatal) then
+  begin
+    if AException <> nil then
+      Quick.Logger.Logger.Add(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), etCritical)
+    else
+      Quick.Logger.Logger.Add(Format(AMessage, AArgs), etCritical);
   end;
 end;
 

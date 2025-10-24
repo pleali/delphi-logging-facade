@@ -11,6 +11,7 @@ uses
   System.StrUtils,
   Logger.Intf,
   Logger.Types,
+  Logger.StackTrace,
   LoggerPro;  // External dependency: LoggerPro library
 
 type
@@ -40,23 +41,29 @@ type
     // ILogger implementation
     procedure Trace(const AMessage: string); overload;
     procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+    procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Debug(const AMessage: string); overload;
     procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+    procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Info(const AMessage: string); overload;
     procedure Info(const AMessage: string; const AArgs: array of const); overload;
+    procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Warn(const AMessage: string); overload;
     procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+    procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Error(const AMessage: string); overload;
     procedure Error(const AMessage: string; const AArgs: array of const); overload;
     procedure Error(const AMessage: string; AException: Exception); overload;
+    procedure Error(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Fatal(const AMessage: string); overload;
     procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
     procedure Fatal(const AMessage: string; AException: Exception); overload;
+    procedure Fatal(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     function IsTraceEnabled: Boolean;
     function IsDebugEnabled: Boolean;
@@ -206,8 +213,7 @@ begin
   begin
     LTag := IfThen(FName <> '', FName, 'APP');
     if AException <> nil then
-      FLogWriter.Error(Format('%s - Exception: %s: %s',
-        [AMessage, AException.ClassName, AException.Message]), LTag)
+      FLogWriter.Error(TStackTraceManager.FormatExceptionMessage(AMessage, AException), LTag)
     else
       FLogWriter.Error(AMessage, LTag);
   end;
@@ -243,10 +249,93 @@ begin
   begin
     LTag := IfThen(FName <> '', FName, 'FATAL');
     if AException <> nil then
-      FLogWriter.Error(Format('%s - Exception: %s: %s',
-        [AMessage, AException.ClassName, AException.Message]), LTag)
+      FLogWriter.Error(TStackTraceManager.FormatExceptionMessage(AMessage, AException), LTag)
     else
       FLogWriter.Error(AMessage, LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Trace(const AMessage: string; const AArgs: array of const; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llTrace) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'TRACE');
+    if AException <> nil then
+      FLogWriter.Debug(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), LTag)
+    else
+      FLogWriter.Debug(Format(AMessage, AArgs), LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Debug(const AMessage: string; const AArgs: array of const; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llDebug) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    if AException <> nil then
+      FLogWriter.Debug(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), LTag)
+    else
+      FLogWriter.Debug(Format(AMessage, AArgs), LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Info(const AMessage: string; const AArgs: array of const; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llInfo) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    if AException <> nil then
+      FLogWriter.Info(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), LTag)
+    else
+      FLogWriter.Info(Format(AMessage, AArgs), LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Warn(const AMessage: string; const AArgs: array of const; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llWarn) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    if AException <> nil then
+      FLogWriter.Warn(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), LTag)
+    else
+      FLogWriter.Warn(Format(AMessage, AArgs), LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Error(const AMessage: string; const AArgs: array of const; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llError) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'APP');
+    if AException <> nil then
+      FLogWriter.Error(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), LTag)
+    else
+      FLogWriter.Error(Format(AMessage, AArgs), LTag);
+  end;
+end;
+
+procedure TLoggerProAdapter.Fatal(const AMessage: string; const AArgs: array of const; AException: Exception);
+var
+  LTag: string;
+begin
+  if IsLevelEnabled(Logger.Types.llFatal) then
+  begin
+    LTag := IfThen(FName <> '', FName, 'FATAL');
+    if AException <> nil then
+      FLogWriter.Error(TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException), LTag)
+    else
+      FLogWriter.Error(Format(AMessage, AArgs), LTag);
   end;
 end;
 

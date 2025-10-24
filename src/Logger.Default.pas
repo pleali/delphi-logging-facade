@@ -38,23 +38,29 @@ type
     // ILogger implementation
     procedure Trace(const AMessage: string); overload;
     procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+    procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Debug(const AMessage: string); overload;
     procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+    procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Info(const AMessage: string); overload;
     procedure Info(const AMessage: string; const AArgs: array of const); overload;
+    procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Warn(const AMessage: string); overload;
     procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+    procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Error(const AMessage: string); overload;
     procedure Error(const AMessage: string; const AArgs: array of const); overload;
     procedure Error(const AMessage: string; AException: Exception); overload;
+    procedure Error(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Fatal(const AMessage: string); overload;
     procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
     procedure Fatal(const AMessage: string; AException: Exception); overload;
+    procedure Fatal(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     function IsTraceEnabled: Boolean;
     function IsDebugEnabled: Boolean;
@@ -212,6 +218,14 @@ begin
   LogMessage(llTrace, Format(AMessage, AArgs));
 end;
 
+procedure TConsoleLogger.Trace(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if AException <> nil then
+    LogMessage(llTrace, TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException))
+  else
+    LogMessage(llTrace, Format(AMessage, AArgs));
+end;
+
 procedure TConsoleLogger.Debug(const AMessage: string);
 begin
   LogMessage(llDebug, AMessage);
@@ -220,6 +234,14 @@ end;
 procedure TConsoleLogger.Debug(const AMessage: string; const AArgs: array of const);
 begin
   LogMessage(llDebug, Format(AMessage, AArgs));
+end;
+
+procedure TConsoleLogger.Debug(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if AException <> nil then
+    LogMessage(llDebug, TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException))
+  else
+    LogMessage(llDebug, Format(AMessage, AArgs));
 end;
 
 procedure TConsoleLogger.Info(const AMessage: string);
@@ -232,6 +254,14 @@ begin
   LogMessage(llInfo, Format(AMessage, AArgs));
 end;
 
+procedure TConsoleLogger.Info(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if AException <> nil then
+    LogMessage(llInfo, TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException))
+  else
+    LogMessage(llInfo, Format(AMessage, AArgs));
+end;
+
 procedure TConsoleLogger.Warn(const AMessage: string);
 begin
   LogMessage(llWarn, AMessage);
@@ -240,6 +270,14 @@ end;
 procedure TConsoleLogger.Warn(const AMessage: string; const AArgs: array of const);
 begin
   LogMessage(llWarn, Format(AMessage, AArgs));
+end;
+
+procedure TConsoleLogger.Warn(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if AException <> nil then
+    LogMessage(llWarn, TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException))
+  else
+    LogMessage(llWarn, Format(AMessage, AArgs));
 end;
 
 procedure TConsoleLogger.Error(const AMessage: string);
@@ -260,6 +298,14 @@ begin
     LogMessage(llError, AMessage);
 end;
 
+procedure TConsoleLogger.Error(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if AException <> nil then
+    LogMessage(llError, TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException))
+  else
+    LogMessage(llError, Format(AMessage, AArgs));
+end;
+
 procedure TConsoleLogger.Fatal(const AMessage: string);
 begin
   LogMessage(llFatal, AMessage);
@@ -276,6 +322,14 @@ begin
     LogMessage(llFatal, TStackTraceManager.FormatExceptionMessage(AMessage, AException))
   else
     LogMessage(llFatal, AMessage);
+end;
+
+procedure TConsoleLogger.Fatal(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  if AException <> nil then
+    LogMessage(llFatal, TStackTraceManager.FormatExceptionMessage(Format(AMessage, AArgs), AException))
+  else
+    LogMessage(llFatal, Format(AMessage, AArgs));
 end;
 
 function TConsoleLogger.IsTraceEnabled: Boolean;

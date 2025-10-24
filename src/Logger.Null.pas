@@ -28,23 +28,29 @@ type
     // ILogger implementation - all methods do nothing
     procedure Trace(const AMessage: string); overload;
     procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+    procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Debug(const AMessage: string); overload;
     procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+    procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Info(const AMessage: string); overload;
     procedure Info(const AMessage: string; const AArgs: array of const); overload;
+    procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Warn(const AMessage: string); overload;
     procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+    procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Error(const AMessage: string); overload;
     procedure Error(const AMessage: string; const AArgs: array of const); overload;
     procedure Error(const AMessage: string; AException: Exception); overload;
+    procedure Error(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Fatal(const AMessage: string); overload;
     procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
     procedure Fatal(const AMessage: string; AException: Exception); overload;
+    procedure Fatal(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     // All level checks return False
     function IsTraceEnabled: Boolean;
@@ -138,6 +144,36 @@ begin
 end;
 
 procedure TNullLogger.Fatal(const AMessage: string; AException: Exception);
+begin
+  // Do nothing
+end;
+
+procedure TNullLogger.Trace(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  // Do nothing
+end;
+
+procedure TNullLogger.Debug(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  // Do nothing
+end;
+
+procedure TNullLogger.Info(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  // Do nothing
+end;
+
+procedure TNullLogger.Warn(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  // Do nothing
+end;
+
+procedure TNullLogger.Error(const AMessage: string; const AArgs: array of const; AException: Exception);
+begin
+  // Do nothing
+end;
+
+procedure TNullLogger.Fatal(const AMessage: string; const AArgs: array of const; AException: Exception);
 begin
   // Do nothing
 end;
