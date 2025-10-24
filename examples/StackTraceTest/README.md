@@ -38,7 +38,7 @@ This test requires the following packages:
 
 ```powershell
 # From LoggingFacade root directory
-cd e:\Documents\Developpement\Delphi\components\DelphiLoggingFacade
+cd ..\..
 
 # Compile core package
 powershell -ExecutionPolicy Bypass -File build-delphi.ps1 LoggingFacade.dproj -Clean
@@ -250,9 +250,7 @@ Test_MyNewFeature;
 ## ⚡ Quick Start (if JCL already installed)
 
 ```powershell
-# Compile all required packages and run
-cd e:\Documents\Developpement\Delphi\components\DelphiLoggingFacade
-
+# From LoggingFacade root directory
 # Compile core package
 powershell -ExecutionPolicy Bypass -File build-delphi.ps1 LoggingFacade.dproj -Clean
 
