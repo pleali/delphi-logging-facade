@@ -1,1533 +1,1344 @@
-# LoggingFacade
+# LoggingFacade for Delphi
 
-A flexible, SLF4J-inspired logging facade for Delphi that decouples your application code from specific logging implementations.
+A flexible, SLF4J-inspired logging facade for Delphi that decouples application code from specific logging implementations through a clean interface-based architecture.
 
-## Features
+## Table of Contents
 
-- **Interface-based Design**: Application code depends only on the `ILogger` interface
-- **Multiple Implementations**:
-  - Default console logger with colored output
-  - Null logger for testing/disabling logs
-  - Adapters for LoggerPro and QuickLogger
-- **Factory Pattern**: Centralized logger creation and configuration
-- **External Configuration**: Logback-style `.properties` files with hierarchical resolution
-  - Automatic loading based on DEBUG/RELEASE builds
-  - Wildcard patterns (`mqtt.*=INFO`)
-  - Most specific rule wins
-  - Runtime reconfiguration support
-- **Named Loggers**: Component-level logging with Spring Boot-style formatting
-  - Hierarchical logger names (e.g., `MyApp.Database`)
-  - Cached logger instances for performance
-  - Automatic name formatting in output
-- **Stack Trace Capture**: Optional exception stack trace support (NEW!)
-  - Automatic capture with JclDebug integration
-  - Shows complete call chain for exceptions
-  - Can be enabled/disabled at runtime
-  - Zero performance impact when disabled
-- **Zero Dependencies**: Core framework has no external dependencies
-- **Modular Packages**: Separate BPL packages for core and adapters
-- **Thread-Safe**: Factory and configuration are thread-safe
-- **Cross-Platform**: Compatible with Windows, Linux, macOS
-- **Modern Delphi**: Compatible with Delphi 10.x+
-- **Easy to Extend**: Add your own logger implementations by implementing `ILogger`
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Core Concepts](#core-concepts)
+  - [Hierarchical Logger System](#hierarchical-logger-system)
+  - [Log Levels](#log-levels)
+  - [Configuration System](#configuration-system)
+  - [Stack Trace Support](#stack-trace-support)
+- [Installation](#installation)
+  - [Dynamic Linking (BPL)](#dynamic-linking-bpl)
+  - [Static Linking (Source Files)](#static-linking-source-files)
+- [Quick Start Guide](#quick-start-guide)
+- [Advanced Usage](#advanced-usage)
+  - [Using LoggerPro Adapter](#using-loggerpro-adapter)
+  - [Using QuickLogger Adapter](#using-quicklogger-adapter)
+  - [Custom Logger Implementation](#custom-logger-implementation)
+  - [Stack Trace Configuration](#stack-trace-configuration)
+- [Configuration Reference](#configuration-reference)
+- [API Reference](#api-reference)
+- [Examples](#examples)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Migration Guide](#migration-guide)
+
+## Overview
+
+LoggingFacade provides a unified logging interface for Delphi applications, allowing you to write code against a common API while switching between different logging implementations as needed. Inspired by SLF4J (Simple Logging Facade for Java) and Logback, it brings enterprise-grade logging patterns to the Delphi ecosystem.
+
+### When to Use LoggingFacade
+
+- **Large applications** with multiple teams or modules that need consistent logging
+- **Library development** where you don't want to force a specific logging library on users
+- **Migration scenarios** when transitioning between logging implementations
+- **Microservices** that need different logging strategies per service
+- **Testing environments** where you need to easily disable or mock logging
+
+### When to Use Direct Library Access
+
+- **Simple applications** with straightforward logging needs
+- **Performance-critical paths** where the facade overhead matters (though it's minimal)
+- **When using library-specific features** not exposed through the facade
+
+## Key Features
+
+- **🎭 Interface-Based Design**: Application code depends only on `ILogger` interface
+- **🌳 Hierarchical Logger Names**: SLF4J/Logback-style hierarchical logger management
+- **⚙️ External Configuration**: Properties files with hierarchical resolution and wildcards
+- **🔄 Hot Reload**: Runtime configuration changes without restart
+- **📚 Multiple Implementations**: Console, Null, LoggerPro, QuickLogger adapters
+- **🔍 Stack Trace Support**: Optional exception stack traces with JCL Debug
+- **📦 Modular Architecture**: Separate packages for core and adapters
+- **🔒 Thread-Safe**: Concurrent-safe factory and configuration
+- **⚡ Performance Optimized**: Logger caching, lazy initialization
+- **🌍 Cross-Platform**: Windows, Linux, macOS support
 
 ## Architecture
 
-```
-┌─────────────────┐
-│ Application     │
-│ Code            │
-└────────┬────────┘
-         │
-         │ depends on
-         ▼
-┌─────────────────┐
-│ ILogger         │
-│ Interface       │
-└────────┬────────┘
-         │
-         │ implemented by
-         ▼
-┌─────────────────────────────────────────┐
-│ TConsoleLogger                          │
-│ TNullLogger                             │
-│ TLoggerProAdapter                       │
-│ TQuickLoggerAdapter                     │
-│ ... (your custom implementations)       │
-└─────────────────────────────────────────┘
+LoggingFacade implements the **Facade Pattern** to provide a simplified, unified interface to various logging subsystems:
+
+```mermaid
+graph TD
+    A[Application Code] --> B[ILogger Interface]
+    B --> C{TLoggerFactory}
+    C --> D[TConsoleLogger]
+    C --> E[TNullLogger]
+    C --> F[TLoggerProAdapter]
+    C --> G[TQuickLoggerAdapter]
+    F --> H[LoggerPro Library]
+    G --> I[QuickLogger Library]
+
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
-## Default Logger vs Production Logging
+### Design Principles
 
-**Important Note**: The default `TConsoleLogger` provided by this facade is a basic implementation designed for:
-- Development and debugging
-- Console applications
-- Simple logging scenarios
-- Learning and testing
+1. **Facade Pattern**: Single interface (`ILogger`) hiding implementation complexity
+2. **Factory Pattern**: Centralized logger creation via `TLoggerFactory`
+3. **Singleton Pattern**: Single factory instance with cached loggers
+4. **Adapter Pattern**: Bridges to external logging libraries
+5. **Registry Pattern**: Dynamic provider registration for stack traces
 
-While the default logger is **thread-safe**, it is **not optimized for production use** and lacks advanced features such as:
-- Asynchronous logging
-- Log rotation and archiving
-- Multiple output targets (file, database, network)
-- Structured logging
-- Performance optimization for high-volume logging
-- Advanced filtering and formatting
+### Component Architecture
 
-**For production applications**, we strongly recommend using one of the supported external logging libraries:
-- **LoggerPro**: High-performance, async logging with multiple appenders
-- **QuickLogger**: Feature-rich with providers for files, console, email, databases, etc.
+#### Core Package (LoggingFacade.bpl)
+- `Logger.Intf.pas` - Core `ILogger` interface
+- `Logger.Factory.pas` - Factory with hierarchical logger management
+- `Logger.Config.pas` - Configuration file parser with wildcards
+- `Logger.Types.pas` - Common types and log levels
+- `Logger.Default.pas` - Console logger implementation
+- `Logger.Null.pas` - Null logger (no output)
+- `Logger.StackTrace.pas` - Stack trace registry
 
-These libraries are specifically designed for production workloads and offer the performance, reliability, and features required by enterprise applications.
+#### Adapter Packages
+- `LoggingFacade.LoggerPro.bpl` - LoggerPro integration
+- `LoggingFacade.QuickLogger.bpl` - QuickLogger integration
+- `LoggingFacade.StackTrace.JclDebug.bpl` - JCL Debug provider
 
-The facade pattern allows you to start development with the simple default logger and seamlessly switch to a production-ready library when needed, without changing your application code.
+## Core Concepts
+
+### Hierarchical Logger System
+
+**This is the most powerful feature of LoggingFacade** - a hierarchical logger naming system similar to SLF4J/Logback that enables fine-grained control over logging output.
+
+#### How It Works
+
+Loggers are organized in a hierarchical namespace using dot notation, similar to Java packages or .NET namespaces:
+
+```delphi
+// Get hierarchical named loggers
+var
+  AppLogger := TLoggerFactory.GetLogger('MyApp');
+  DbLogger := TLoggerFactory.GetLogger('MyApp.Database');
+  ConnLogger := TLoggerFactory.GetLogger('MyApp.Database.Connection');
+  RepoLogger := TLoggerFactory.GetLogger('MyApp.Database.Repository');
+  ApiLogger := TLoggerFactory.GetLogger('MyApp.API.REST');
+```
+
+Each logger inherits configuration from its parent in the hierarchy:
+- `MyApp.Database.Connection` inherits from `MyApp.Database`
+- `MyApp.Database` inherits from `MyApp`
+- `MyApp` inherits from root
+
+#### Logger Instance Caching
+
+`TLoggerFactory` maintains a cache of logger instances for performance:
+
+```delphi
+// First call creates and caches the logger
+var Logger1 := TLoggerFactory.GetLogger('MyApp.Database');
+
+// Subsequent calls return the cached instance (very fast)
+var Logger2 := TLoggerFactory.GetLogger('MyApp.Database');
+
+// Logger1 and Logger2 are the same instance
+Assert(Logger1 = Logger2);
+```
+
+#### Configuration with Hierarchical Resolution
+
+Configure loggers using properties files with hierarchical matching:
+
+```properties
+# Root logger - fallback for everything
+root=INFO
+
+# Configure entire application at DEBUG
+MyApp=DEBUG
+
+# But database layer needs only INFO
+MyApp.Database=INFO
+
+# Except connection pool which needs TRACE for debugging
+MyApp.Database.ConnectionPool=TRACE
+
+# Configure all API endpoints with wildcard
+MyApp.API.*=WARN
+
+# But REST endpoints need DEBUG
+MyApp.API.REST=DEBUG
+```
+
+#### Wildcard Pattern Matching
+
+Use wildcards to configure multiple loggers at once:
+
+```properties
+# Configure all MQTT components
+mqtt.*=DEBUG
+
+# Configure all transport layers
+mqtt.transport.*=TRACE
+
+# Configure all database repositories
+app.database.repository.*=INFO
+```
+
+**Resolution Rules:**
+1. **Exact match wins** - `MyApp.Database.Connection` matches exactly
+2. **Most specific wildcard** - `MyApp.Database.*` beats `MyApp.*`
+3. **Inheritance** - Falls back to parent or root if no match
+
+#### Practical Example
+
+```delphi
+program HierarchicalLoggingDemo;
+
+uses
+  Logger.Factory, Logger.Intf, Logger.Types;
+
+procedure InitializeLogging;
+begin
+  // Configuration (usually from .properties file)
+  TLoggerFactory.SetLoggerLevel('app', llInfo);
+  TLoggerFactory.SetLoggerLevel('app.database.*', llDebug);
+  TLoggerFactory.SetLoggerLevel('app.database.connection', llTrace);
+  TLoggerFactory.SetLoggerLevel('app.business', llWarn);
+  TLoggerFactory.SetLoggerLevel('app.api.*', llError);
+end;
+
+// In your database layer
+procedure DatabaseOperation;
+var
+  Logger: ILogger;
+begin
+  Logger := TLoggerFactory.GetLogger('app.database.connection');
+
+  Logger.Trace('Opening connection...'); // Shows (TRACE level)
+  Logger.Debug('Executing query: SELECT * FROM users'); // Shows
+  Logger.Info('Query executed successfully'); // Shows
+end;
+
+// In your business layer
+procedure BusinessLogic;
+var
+  Logger: ILogger;
+begin
+  Logger := TLoggerFactory.GetLogger('app.business.orders');
+
+  Logger.Debug('Processing order...'); // Hidden (WARN level)
+  Logger.Info('Order processed'); // Hidden
+  Logger.Warn('Inventory low'); // Shows
+end;
+
+// In your API layer
+procedure ApiEndpoint;
+var
+  Logger: ILogger;
+begin
+  Logger := TLoggerFactory.GetLogger('app.api.users');
+
+  Logger.Info('API called'); // Hidden (ERROR level)
+  Logger.Error('Authentication failed'); // Shows
+end;
+
+begin
+  InitializeLogging;
+  DatabaseOperation;
+  BusinessLogic;
+  ApiEndpoint;
+end.
+```
+
+#### Best Practices for Logger Naming
+
+1. **Use package/unit structure**: Mirror your code organization
+   ```delphi
+   'MyApp.UI.MainForm'
+   'MyApp.Business.OrderProcessor'
+   'MyApp.Database.CustomerRepository'
+   ```
+
+2. **Keep names consistent**: Use the same naming convention throughout
+   ```delphi
+   // Good - consistent
+   'app.database.connection'
+   'app.database.repository'
+   'app.database.migration'
+
+   // Bad - inconsistent
+   'app.DB.connection'
+   'app.database.repo'
+   'app.data.migration'
+   ```
+
+3. **Create logger constants**: Define logger names in one place
+   ```delphi
+   const
+     LOGGER_APP = 'myapp';
+     LOGGER_DATABASE = 'myapp.database';
+     LOGGER_API = 'myapp.api';
+   ```
+
+4. **One logger per class**: Each class gets its own logger
+   ```delphi
+   type
+     TOrderService = class
+     private
+       FLogger: ILogger;
+     public
+       constructor Create;
+     end;
+
+   constructor TOrderService.Create;
+   begin
+     FLogger := TLoggerFactory.GetLogger('MyApp.Business.OrderService');
+   end;
+   ```
+
+### Log Levels
+
+LoggingFacade supports six log levels, ordered from most verbose to most severe:
+
+| Level | Usage | Example |
+|-------|-------|---------|
+| **TRACE** | Very detailed information, typically only enabled during development | Method entry/exit, variable values |
+| **DEBUG** | Detailed information useful for debugging | SQL queries, configuration values |
+| **INFO** | General informational messages | Application startup, feature usage |
+| **WARN** | Potentially harmful situations | Deprecated API usage, poor performance |
+| **ERROR** | Error events that might still allow the application to continue | Failed operations, invalid input |
+| **FATAL** | Very severe error events that will presumably lead the application to abort | Out of memory, critical resource unavailable |
+
+#### Level Filtering
+
+Each logger has a minimum level - messages below this level are discarded:
+
+```delphi
+var Logger := TLoggerFactory.GetLogger('MyApp');
+Logger.SetLevel(llInfo);
+
+Logger.Trace('Hidden');  // Not logged
+Logger.Debug('Hidden');  // Not logged
+Logger.Info('Visible');  // Logged
+Logger.Warn('Visible');  // Logged
+```
+
+#### Performance Optimization with Level Checks
+
+Always check if a level is enabled before expensive operations:
+
+```delphi
+// Bad - always builds the expensive string
+Logger.Debug('Data: ' + ExpensiveDataDump());
+
+// Good - only builds string if DEBUG is enabled
+if Logger.IsDebugEnabled then
+  Logger.Debug('Data: ' + ExpensiveDataDump());
+```
+
+### Configuration System
+
+The configuration system supports external `.properties` files with hierarchical resolution, inspired by Logback.
+
+#### Automatic Configuration Loading
+
+Configuration files are automatically loaded based on build mode:
+- **DEBUG builds**: Looks for `logging-debug.properties`
+- **RELEASE builds**: Looks for `logging.properties`
+
+Search order:
+1. Current directory
+2. Executable directory
+3. Parent of executable directory
+
+#### Properties File Format
+
+```properties
+# Comments start with # or !
+# Format: logger.name=LEVEL
+
+# Root logger (fallback for all unconfigured loggers)
+root=INFO
+
+# Exact logger configuration
+app.database.connection=DEBUG
+app.business.orderservice=TRACE
+
+# Wildcard patterns
+app.database.*=INFO
+mqtt.*=DEBUG
+*.repository=WARN
+
+# Configuration is case-insensitive
+MyApp.Main=DEBUG  # same as myapp.main=DEBUG
+```
+
+#### Hierarchical Resolution Example
+
+Given this configuration:
+```properties
+root=WARN
+app.*=INFO
+app.database.*=DEBUG
+app.database.connection=TRACE
+app.database.repository.*=INFO
+app.database.repository.orders=DEBUG
+```
+
+Resolution results:
+| Logger Name | Resolved Level | Matching Rule |
+|-------------|---------------|---------------|
+| `some.other.logger` | WARN | root |
+| `app.ui.mainform` | INFO | app.* |
+| `app.database.migration` | DEBUG | app.database.* |
+| `app.database.connection` | TRACE | app.database.connection (exact) |
+| `app.database.repository.customers` | INFO | app.database.repository.* |
+| `app.database.repository.orders` | DEBUG | app.database.repository.orders (exact) |
+
+#### Runtime Configuration Changes
+
+Change logger levels at runtime without restarting:
+
+```delphi
+// Change single logger
+TLoggerFactory.SetLoggerLevel('app.database', llTrace);
+
+// Change with wildcard
+TLoggerFactory.SetLoggerLevel('app.api.*', llError);
+
+// Reload configuration file
+TLoggerFactory.ReloadConfig;
+```
+
+### Stack Trace Support
+
+LoggingFacade provides optional stack trace capture for exceptions through a modular provider system.
+
+#### Architecture
+
+The stack trace system uses a **Registry Pattern** with lazy initialization:
+
+```delphi
+// Provider registration (happens automatically)
+TStackTraceManager.RegisterProviderClass(TJclDebugProvider);
+
+// Usage in logger
+procedure TConsoleLogger.Error(const AMessage: string; AException: Exception);
+begin
+  LogMessage(llError, AMessage);
+  if TStackTraceManager.IsAvailable then
+    LogMessage(llError, TStackTraceManager.GetStackTrace(AException));
+end;
+```
+
+#### Two Usage Modes
+
+1. **Dynamic BPL Loading** (Recommended for production):
+   ```delphi
+   uses
+     Logger.StackTrace.Loader; // Auto-loads BPL at startup
+   ```
+
+2. **Static Linking** (For development/debugging):
+   ```delphi
+   uses
+     Logger.StackTrace.JclDebug; // Direct dependency on JCL
+   ```
+
+#### Security Considerations
+
+Stack traces are automatically disabled in RELEASE builds unless explicitly enabled:
+
+```delphi
+// Only available in DEBUG or when debugger attached
+if IsDebugMode then
+  LoadStackTraceProvider;
+```
 
 ## Installation
 
-The framework provides packages (`.dpk` files) that can be used in two ways:
+LoggingFacade can be installed using either dynamic linking (BPL packages) or static linking (source files).
 
-### Option 1: Dynamic Linking (Runtime Packages)
+### Dynamic Linking (BPL)
 
-Use BPL files for shared components across multiple applications or to reduce executable size.
+Best for shared components across multiple applications.
 
-1. **Compile the packages:**
-   - Open `LoggingFacade.dpk` in Delphi and compile it (F9) → generates `LoggingFacade.bpl`
-   - If using LoggerPro: compile `LoggingFacade.LoggerPro.dpk` → generates `LoggingFacade.LoggerPro.bpl`
-   - If using QuickLogger: compile `LoggingFacade.QuickLogger.dpk` → generates `LoggingFacade.QuickLogger.bpl`
+#### 1. Compile the Packages
 
-2. **Add runtime packages to your application's `.dproj` file:**
+Open each `.dpk` file in Delphi and compile (Shift+F9):
 
-For basic usage (console logger only):
-```xml
-<Requires>
-  <Package>LoggingFacade</Package>
-  <Package>rtl</Package>
-</Requires>
-```
+- `packages\LoggingFacade.dpk` → Core framework
+- `packages\LoggingFacade.LoggerPro.dpk` → LoggerPro adapter (optional)
+- `packages\LoggingFacade.QuickLogger.dpk` → QuickLogger adapter (optional)
+- `packages\LoggingFacade.StackTrace.JclDebug.dpk` → Stack traces (optional)
 
-For LoggerPro integration:
-```xml
-<Requires>
-  <Package>LoggingFacade</Package>
-  <Package>LoggingFacade.LoggerPro</Package>
-  <Package>LoggerPro</Package>
-  <Package>rtl</Package>
-</Requires>
-```
+#### 2. Deploy BPL Files
 
-For QuickLogger integration:
-```xml
-<Requires>
-  <Package>LoggingFacade</Package>
-  <Package>LoggingFacade.QuickLogger</Package>
-  <Package>QuickLogger</Package>
-  <Package>rtl</Package>
-</Requires>
-```
+Copy the generated `.bpl` files to:
+- System PATH directory, or
+- Application directory
 
-### Option 2: Static Linking (Include Source Files)
+#### 3. Configure Your Project
 
-Include the source files directly in your project for a single executable with no external dependencies.
-
-1. **Add source paths to your project:**
-   - Copy or link the source files from `src/` directory to your project
-   - Alternatively, add the directory to your project's search paths: Project → Options → Source
-
-2. **Use units directly in your application:**
-```delphi
-uses
-  Logger.Intf,
-  Logger.Factory;
-
-begin
-  Log.Info('Application started');
-end;
-```
-
-This approach produces a standalone executable without requiring any BPL files at runtime.
-
-## Quick Start
-
-### 1. Basic Usage (Default Console Logger)
-
-```delphi
-uses
-  Logger.Intf,
-  Logger.Factory;
-
-var
-  LLogger: ILogger;
-begin
-  LLogger := Log;  // Get the global logger
-
-  LLogger.Info('Application started');
-  LLogger.Debug('Debug information');
-  LLogger.Warn('Warning message');
-  LLogger.Error('Error message');
-end;
-```
-
-**Required Runtime Packages for this example:**
-- `LoggingFacade` (core package)
-
-### 2. Configure Log Level
-
-```delphi
-uses
-  Logger.Factory, Logger.Types;
-
-begin
-  // Configure console logger with DEBUG level
-  TLoggerFactory.UseConsoleLogger(llDebug, True);
-
-  Log.Debug('This will now appear');
-  Log.Trace('This will not appear (below DEBUG level)');
-end;
-```
-
-### 3. Use Null Logger (Disable Logging)
-
-```delphi
-uses
-  Logger.Factory;
-
-begin
-  // Disable all logging
-  TLoggerFactory.UseNullLogger;
-
-  Log.Info('This message will be discarded');
-end;
-```
-
-### 4. Use LoggerPro
-
-```delphi
-uses
-  Logger.Intf,
-  Logger.Factory,
-  Logger.LoggerPro.Adapter,
-  Logger.Types,
-  LoggerPro,
-  LoggerPro.FileAppender;
-
-var
-  LLogWriter: ILogWriter;
-begin
-  // Create LoggerPro logger with file appender
-  LLogWriter := BuildLogWriter([TLoggerProFileAppender.Create(10, 5, 'logs')]);
-
-  // Use LoggerPro through our facade (3 params: name, logWriter, minLevel)
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', LLogWriter, llDebug));
-
-  Log.Info('This goes to LoggerPro');
-end;
-```
-
-**Required Runtime Packages for this example:**
-- `LoggingFacade` (core package)
-- `LoggingFacade.LoggerPro` (LoggerPro adapter package)
-- `LoggerPro` (external logging library package)
-
-### 5. Use QuickLogger
-
-```delphi
-uses
-  Logger.Intf,
-  Logger.Factory,
-  Logger.QuickLogger.Adapter,
-  Logger.Types,
-  Quick.Logger,
-  Quick.Logger.Provider.Files;
-
-begin
-  // Configure QuickLogger
-  Quick.Logger.Logger.Providers.Add(TLogFileProvider.Create);
-
-  // Use QuickLogger through our facade (2 params: name, minLevel)
-  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llInfo));
-
-  Log.Info('This goes to QuickLogger');
-end;
-```
-
-**Required Runtime Packages for this example:**
-- `LoggingFacade` (core package)
-- `LoggingFacade.QuickLogger` (QuickLogger adapter package)
-- `QuickLogger` (external logging library package)
-
-### 6. Named Loggers (Component-Level Logging)
-
-Named loggers allow you to organize logs by component or module, similar to Spring Boot's logging system:
-
-```delphi
-uses
-  Logger.Intf,
-  Logger.Factory;
-
-var
-  LLoggerMain: ILogger;
-  LLoggerDb: ILogger;
-  LLoggerApi: ILogger;
-begin
-  // Get named loggers for different components
-  LLoggerMain := TLoggerFactory.GetLogger('MyApp.Main');
-  LLoggerDb := TLoggerFactory.GetLogger('MyApp.Database');
-  LLoggerApi := TLoggerFactory.GetLogger('MyApp.ApiClient');
-
-  // Each logger adds its name to the output (Spring Boot style)
-  LLoggerMain.Info('Application initialized');
-  // Output: 2025-01-15 10:30:45.123 INFO  [                             MyApp.Main] : Application initialized
-
-  LLoggerDb.Debug('Connection established');
-  // Output: 2025-01-15 10:30:45.456 DEBUG [                         MyApp.Database] : Connection established
-
-  LLoggerApi.Warn('Rate limit approaching');
-  // Output: 2025-01-15 10:30:45.789 WARN  [                        MyApp.ApiClient] : Rate limit approaching
-
-  // Root logger (no name) still works
-  Log.Info('Application started');
-  // Output: 2025-01-15 10:30:45.000 INFO  : Application started
-end;
-```
-
-**Benefits of Named Loggers:**
-- **Organization**: Group logs by component, module, or layer
-- **Identification**: Instantly see which part of your application generated the log
-- **Debugging**: Quickly filter logs when troubleshooting specific components
-- **Performance**: Loggers are cached - getting the same named logger multiple times is very fast
-
-**Best Practices:**
-- Use hierarchical names: `MyApp.Module.Component`
-- Store logger in class fields for performance:
-  ```delphi
-  type
-    TApiClient = class
-    private
-      FLogger: ILogger;
-    public
-      constructor Create;
-    end;
-
-  constructor TApiClient.Create;
-  begin
-    inherited;
-    FLogger := TLoggerFactory.GetLogger('MyApp.ApiClient');
-  end;
+In Project Options → Packages → Runtime Packages:
+- Check "Link with runtime packages"
+- Add package names (without .bpl extension):
   ```
-- Root logger (no name) is fastest - use for simple applications
+  LoggingFacade;LoggingFacade.LoggerPro
+  ```
 
-## Log Levels
+### Static Linking (Source Files)
 
-The framework supports the following log levels (from most verbose to most severe):
+Best for single applications or when you want to avoid BPL deployment.
 
-| Level | Description | Use Case |
-|-------|-------------|----------|
-| `llTrace` | Very detailed information | Fine-grained debugging |
-| `llDebug` | Debug information | Developer diagnostics |
-| `llInfo` | Informational messages | General application flow |
-| `llWarn` | Warning messages | Potentially harmful situations |
-| `llError` | Error messages | Error events that might still allow the app to continue |
-| `llFatal` | Fatal messages | Severe errors that will lead the app to abort |
+#### 1. Add Source Path
 
-## Advanced Configuration
-
-### Configuration Files (Logback-style)
-
-The framework supports external configuration files using the Java `.properties` format for portable, cross-platform configuration:
-
-**Automatic Loading:**
-- DEBUG builds: automatically loads `logging-debug.properties`
-- RELEASE builds: automatically loads `logging.properties`
-
-**File Format:**
-```properties
-# Comments start with #
-root=INFO
-
-# Exact logger names
-MyApp.Database=DEBUG
-MyApp.Network=INFO
-
-# Hierarchical patterns with wildcards
-mqtt.*=INFO
-mqtt.transport.ics=TRACE
-
-# The most specific rule wins
+In Project Options → Delphi Compiler → Search Path, add:
+```
+..\LoggingFacade\src
 ```
 
-**Hierarchical Resolution (inspired by Logback):**
-
-For a logger named `mqtt.transport.ics`, the framework searches in this order:
-1. `mqtt.transport.ics` (exact match)
-2. `mqtt.transport.*` (parent wildcard)
-3. `mqtt.*` (grandparent wildcard)
-4. `root` (fallback)
-
-The most specific matching rule wins.
-
-**Example Configuration:**
-
-```properties
-# logging-debug.properties (development)
-root=DEBUG
-MyApp.*=TRACE
-mqtt.*=DEBUG
-mqtt.core=INFO
-
-# logging.properties (production)
-root=WARN
-MyApp.*=INFO
-mqtt.*=ERROR
-```
-
-**API Methods:**
-
-```delphi
-// Manual loading
-TLoggerFactory.LoadConfig('path/to/config.properties');
-
-// Reload configuration at runtime
-TLoggerFactory.ReloadConfig;
-
-// Set level programmatically
-TLoggerFactory.SetLoggerLevel('mqtt.*', llDebug);
-
-// Query configured level
-LLevel := TLoggerFactory.GetConfiguredLevel('MyApp.Database');
-```
-
-
-## API Reference
-
-### ILogger Interface
-
-```delphi
-type
-  ILogger = interface
-    // Logging methods
-    procedure Trace(const AMessage: string); overload;
-    procedure Trace(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Debug(const AMessage: string); overload;
-    procedure Debug(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Info(const AMessage: string); overload;
-    procedure Info(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Warn(const AMessage: string); overload;
-    procedure Warn(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Error(const AMessage: string); overload;
-    procedure Error(const AMessage: string; const AArgs: array of const); overload;
-    procedure Error(const AMessage: string; AException: Exception); overload;
-
-    procedure Fatal(const AMessage: string); overload;
-    procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
-    procedure Fatal(const AMessage: string; AException: Exception); overload;
-
-    // Level checking
-    function IsTraceEnabled: Boolean;
-    function IsDebugEnabled: Boolean;
-    function IsInfoEnabled: Boolean;
-    function IsWarnEnabled: Boolean;
-    function IsErrorEnabled: Boolean;
-    function IsFatalEnabled: Boolean;
-
-    // Configuration
-    procedure SetLevel(ALevel: TLogLevel);
-    function GetLevel: TLogLevel;
-
-    // Logger identification
-    function GetName: string;
-  end;
-```
-
-### TLoggerFactory Class
-
-```delphi
-type
-  TLoggerFactory = class
-    // Get logger instance (with optional name for component-level logging)
-    class function GetLogger(const AName: string = ''): ILogger;
-
-    // Set a custom factory function
-    class procedure SetLoggerFactory(AFactoryFunc: TLoggerFactoryFunc);
-
-    // Set a custom named logger factory function
-    class procedure SetNamedLoggerFactory(AFactoryFunc: TNamedLoggerFactoryFunc);
-
-    // Set a specific logger instance
-    class procedure SetLogger(ALogger: ILogger);
-
-    // Reset to default logger
-    class procedure Reset;
-
-    // Quick configuration methods
-    class procedure UseConsoleLogger(AMinLevel: TLogLevel = llInfo;
-                                     AUseColors: Boolean = True);
-    class procedure UseNullLogger;
-
-    // Logger name formatting configuration
-    class procedure SetLoggerNameWidth(AWidth: Integer);
-    class function GetLoggerNameWidth: Integer;
-
-    // Configuration management
-    class procedure LoadConfig(const AFileName: string = '');
-    class procedure ReloadConfig;
-    class procedure SetLoggerLevel(const ALoggerName: string; ALevel: TLogLevel);
-    class function GetConfiguredLevel(const ALoggerName: string;
-                                      ADefaultLevel: TLogLevel = llInfo): TLogLevel;
-    class procedure ClearConfig;
-  end;
-```
-
-### Global Function
-
-```delphi
-// Convenience function - equivalent to TLoggerFactory.GetLogger
-function Log: ILogger;
-```
-
-## Stack Trace Capture (Optional)
-
-The framework supports optional stack trace capture for exceptions using the JCL Debug library. Stack trace providers are **automatically loaded at runtime** via dynamic BPL loading (Windows only).
-
-### Key Features
-
-- **Zero Configuration**: BPL providers are automatically detected and loaded
-- **Zero Dependencies**: Core framework has no compile-time dependency on JCL
-- **Flexible Deployment**: Deploy with or without stack trace support
-- **Security**: In Release mode, BPL must be in exe directory
-- **Graceful Degradation**: Application works normally without BPL
-
-### Requirements
-
-- **Windows**: Dynamic loading is Windows-only (uses LoadPackage API)
-- **JEDI Code Library (JCL)**: Download from https://github.com/project-jedi/jcl
-- **Debug Information**: Best results with detailed map files or JCL debug data
-
-### Installation
-
-**Recommended: Dynamic BPL Loading (Automatic)**
-
-1. Install JCL library
-2. Compile `LoggingFacade.StackTrace.JclDebug.dpk` → produces `LoggingFacade.StackTrace.JclDebug.bpl`
-3. **For Release builds**: Copy BPL to your exe directory
-4. **For Debug builds**: BPL can be anywhere in Windows search path
-
-**That's it!** The stack trace provider is automatically loaded at startup.
-
-**Alternative: Static Linking**
-
-Include the source files directly in your project:
-- Add `Logger.StackTrace.pas` (already in core package)
-- Add `Logger.StackTrace.JclDebug.pas` to your project
-- Manually call: `TStackTraceManager.SetProvider(TJclDebugStackTraceProvider.Create)`
-
-### Usage
-
-**Automatic Loading (Recommended)**
+#### 2. Add Units to Your Code
 
 ```delphi
 uses
+  Logger.Intf,
   Logger.Factory,
-  Logger.StackTrace;  // That's all you need!
-
-begin
-  // Configure logger
-  TLoggerFactory.UseConsoleLogger(llDebug);
-
-  // Stack trace provider automatically loads from BPL if available
-  // No manual configuration needed!
-
-  // Use logger normally - exceptions include stack traces automatically
-  try
-    DoSomething;
-  except
-    on E: Exception do
-      Log.Error('Operation failed', E);
-      // Output includes full stack trace if BPL was loaded
-  end;
-end;
+  Logger.Types,
+  Logger.Default;  // Or other implementations
 ```
 
-**Manual Loading (Advanced)**
+#### Comparison: BPL vs Source
+
+| Aspect | BPL (Dynamic) | Source (Static) |
+|--------|---------------|-----------------|
+| **Executable Size** | Smaller | Larger |
+| **Deployment** | Requires BPL files | Single EXE |
+| **Shared Code** | Yes, across apps | No |
+| **Updates** | Update BPL only | Recompile all apps |
+| **Debugging** | More complex | Straightforward |
+| **Best For** | Multiple apps, plugins | Single apps |
+
+## Quick Start Guide
+
+### Minimal Example
 
 ```delphi
-uses
-  Logger.Factory,
-  Logger.StackTrace,
-  Logger.StackTrace.JclDebug;
-
-begin
-  // Configure logger
-  TLoggerFactory.UseConsoleLogger(llDebug);
-
-  // Manually set provider (static linking)
-  TStackTraceManager.SetProvider(TJclDebugStackTraceProvider.Create);
-  TStackTraceManager.Enable;
-
-  // Use logger normally
-end;
-```
-
-### Dynamic Loading Behavior
-
-The stack trace system automatically tries to load `LoggingFacade.StackTrace.JclDebug.bpl` at application startup.
-
-**Release Mode** (`{$IFNDEF DEBUG}` or no debugger attached):
-- BPL **must** be in the same directory as the executable
-- If BPL is found elsewhere: **Warning logged** + BPL unloaded + Stack traces disabled
-- If BPL not found: Silent (normal deployment without stack traces)
-
-**Debug Mode** (`{$IFDEF DEBUG}` or debugger attached):
-- BPL can be anywhere in Windows DLL search path
-- More flexible for development environments
-- If BPL not found: Silent (normal for development)
-
-**Check Loading Status:**
-```delphi
-if TStackTraceManager.IsEnabled then
-  WriteLn('Stack traces enabled')
-else
-begin
-  WriteLn('Stack traces disabled');
-  {$IFDEF MSWINDOWS}
-  if TStackTraceManager.GetLastError <> '' then
-    WriteLn('Error: ', TStackTraceManager.GetLastError);
-  {$ENDIF}
-end;
-```
-
-### Compiler Settings for Best Results
-
-**Option A: Detailed Map Files**
-- Project → Options → Linking
-- Set "Map file" to "Detailed"
-
-**Option B: JCL Debug Information (Recommended)**
-- Use JCL's "Insert JCL Debug Data" tool
-- Embeds debug info directly in the executable
-- No separate .map file needed
-
-### Example Output
-
-**Without stack trace:**
-```
-2025-01-15 10:30:45.123 ERROR : Operation failed - Exception: EAccessViolation: Access violation
-```
-
-**With stack trace:**
-```
-2025-01-15 10:30:45.123 ERROR : Operation failed - Exception: EAccessViolation: Access violation
-Stack Trace:
-  [00401234] MyUnit.ProcessData (Line 145)
-  [00401567] MyUnit.ValidateInput (Line 89)
-  [00401890] MyApp.Execute (Line 42)
-  [00402123] MyApp.Main (Line 15)
-```
-
-### Advanced Usage
-
-**Get Current Stack Trace:**
-```delphi
-// Capture stack trace at any point (not just exceptions)
-var StackTrace := TStackTraceManager.GetCurrentStackTrace;
-Log.Debug('Call stack: %s', [StackTrace]);
-```
-
-**Enable/Disable at Runtime:**
-```delphi
-// Disable for production
-TStackTraceManager.Disable;
-
-// Re-enable for debugging
-TStackTraceManager.Enable;
-```
-
-**Check if Available:**
-```delphi
-if TStackTraceManager.IsEnabled then
-  Log.Debug('Stack traces are enabled');
-```
-
-### Performance Notes
-
-- **Zero overhead when disabled**: No performance impact if not enabled
-- **Minimal overhead when enabled**: JCL stack capture is highly optimized
-- **Thread-safe**: Safe to use in multi-threaded applications
-- **On-demand formatting**: Stack traces are only formatted when exceptions occur
-
-### Example Project
-
-See `examples/StackTraceExample/StackTraceExample.dpr` for a complete demonstration including:
-- Basic stack trace capture
-- Multiple exception types
-- Nested call stacks
-- Production usage patterns
-
-## Best Practices
-
-### 1. Check Log Level for Expensive Operations
-
-```delphi
-// Bad - always constructs expensive string
-LLogger.Debug('Data: ' + ExpensiveOperation());
-
-// Good - only constructs if debug is enabled
-if LLogger.IsDebugEnabled then
-  LLogger.Debug('Data: ' + ExpensiveOperation());
-```
-
-### 2. Use Format Overloads
-
-**Always use the overloaded methods with arguments instead of pre-formatting strings.** This is critical for performance because the formatting only occurs if the log level is enabled.
-
-```delphi
-// GOOD - Formatting only happens if Info level is enabled
-LLogger.Info('Processing order #%d for user %s', [OrderId, Username]);
-
-// BAD - Format() is always executed, even if Info level is disabled!
-LLogger.Info(Format('Processing order #%d for user %s', [OrderId, Username]));
-
-// ALSO BAD - String concatenation always occurs
-LLogger.Info('Processing order #' + IntToStr(OrderId) + ' for user ' + Username);
-```
-
-**Why this matters:** When using `Log.Info(Format(...))`, the `Format()` call is executed *before* the method is called, so the string formatting happens even if the Info level is disabled. With `Log.Info('...', [...])`, the internal implementation only formats the string if the log level is enabled, avoiding unnecessary CPU cycles.
-
-### 3. Log Exceptions Properly
-
-```delphi
-try
-  DoSomething();
-except
-  on E: Exception do
-  begin
-    LLogger.Error('Operation failed', E);  // Logs exception details
-    raise;
-  end;
-end;
-```
-
-### 4. Configure Logger at Application Startup
-
-```delphi
-program MyApp;
+program QuickStart;
 
 uses
-  Logger.Factory;
+  Logger.Factory, Logger.Intf;
 
+var
+  Logger: ILogger;
 begin
-  // Configure logging once at startup
-  TLoggerFactory.UseConsoleLogger(llDebug);
+  // Get a logger (uses default console logger)
+  Logger := TLoggerFactory.GetLogger('MyApp');
 
-  // Rest of application...
+  // Log messages
+  Logger.Info('Application started');
+  Logger.Debug('Processing data...');
+  Logger.Error('Something went wrong!');
 end.
 ```
 
-### 5. Use Dependency Injection in Classes
+### With Configuration
+
+Create `logging.properties`:
+```properties
+root=WARN
+MyApp=DEBUG
+MyApp.Database=TRACE
+```
 
 ```delphi
+program ConfiguredLogging;
+
+uses
+  Logger.Factory, Logger.Intf, Logger.Types;
+
 type
-  TMyService = class
+  TDatabaseManager = class
   private
     FLogger: ILogger;
   public
     constructor Create;
-    procedure DoWork;
+    procedure Connect;
   end;
 
-constructor TMyService.Create;
+constructor TDatabaseManager.Create;
 begin
-  inherited Create;
-  FLogger := Log;  // Get logger in constructor
+  FLogger := TLoggerFactory.GetLogger('MyApp.Database');
 end;
 
-procedure TMyService.DoWork;
+procedure TDatabaseManager.Connect;
 begin
-  FLogger.Info('Starting work');
-  // ...
+  FLogger.Debug('Connecting to database...');
+  // Connection logic
+  FLogger.Info('Connected successfully');
 end;
+
+var
+  DbManager: TDatabaseManager;
+begin
+  // Configuration loads automatically from logging.properties
+
+  DbManager := TDatabaseManager.Create;
+  try
+    DbManager.Connect;
+  finally
+    DbManager.Free;
+  end;
+end.
 ```
 
-## Project Structure
-
-```
-LoggingFacade/
-├── src/
-│   ├── Logger.Types.pas                   - Log level types and helpers
-│   ├── Logger.Intf.pas                    - ILogger interface
-│   ├── Logger.Default.pas                 - Default console logger
-│   ├── Logger.Null.pas                    - Null logger (no output)
-│   ├── Logger.Factory.pas                 - Logger factory (singleton)
-│   ├── Logger.Config.pas                  - Configuration manager (.properties parser)
-│   ├── Logger.StackTrace.pas              - Stack trace interface and manager
-│   ├── Logger.StackTrace.JclDebug.pas     - JclDebug stack trace adapter
-│   ├── Logger.LoggerPro.Adapter.pas       - LoggerPro adapter
-│   └── Logger.QuickLogger.Adapter.pas     - QuickLogger adapter
-├── examples/
-│   ├── BasicExample/                      - Basic usage examples
-│   ├── ConfigExample/                     - Advanced configuration demo
-│   ├── StackTraceExample/                 - Stack trace capture demo (NEW!)
-│   ├── config/                            - Example configuration files
-│   │   ├── logging-debug.properties       - Development config
-│   │   └── logging.properties             - Production config
-│   ├── LoggerProExample/                  - LoggerPro integration example
-│   └── QuickLoggerExample/                - QuickLogger integration example
-├── LoggingFacade.dpk                      - Core package
-├── LoggingFacade.StackTrace.JclDebug.dpk  - JclDebug stack trace adapter package (NEW!)
-├── LoggingFacade.LoggerPro.dpk            - LoggerPro adapter package
-├── LoggingFacade.QuickLogger.dpk          - QuickLogger adapter package
-└── README.md                              - This file
-```
-
-## Examples
-
-> **Note:** The examples show two approaches: dynamic linking with runtime packages (easiest) or static linking by including source files directly in your project (see Installation section for details).
-
-
-### Example 1: Simple Console Application
-
-**Runtime Packages Required:** `LoggingFacade`
+### With Named Loggers
 
 ```delphi
-program SimpleApp;
+program NamedLoggers;
 
-{$APPTYPE CONSOLE}
+uses
+  Logger.Factory, Logger.Intf;
+
+procedure ProcessOrder(OrderId: Integer);
+var
+  Logger: ILogger;
+begin
+  Logger := TLoggerFactory.GetLogger('MyApp.Business.OrderProcessor');
+
+  Logger.Info('Processing order #%d', [OrderId]);
+  Logger.Debug('Validating order items...');
+  Logger.Debug('Calculating totals...');
+  Logger.Info('Order processed successfully');
+end;
+
+procedure UpdateInventory;
+var
+  Logger: ILogger;
+begin
+  Logger := TLoggerFactory.GetLogger('MyApp.Business.Inventory');
+
+  Logger.Info('Updating inventory levels');
+  Logger.Warn('Low stock for product SKU-123');
+end;
+
+begin
+  ProcessOrder(1001);
+  UpdateInventory;
+end.
+```
+
+### Exception Logging with Stack Traces
+
+```delphi
+program ExceptionLogging;
 
 uses
   System.SysUtils,
-  Logger.Factory,
-  Logger.Types;
+  Logger.Factory, Logger.Intf,
+  Logger.StackTrace.Loader;  // Enable stack traces
 
+procedure RiskyOperation;
+var
+  Logger: ILogger;
 begin
+  Logger := TLoggerFactory.GetLogger('MyApp.Critical');
+
   try
-    // Configure logger
-    TLoggerFactory.UseConsoleLogger(llDebug, True);
-
-    // Use logger
-    Log.Info('Application started');
-    Log.Debug('Debug mode enabled');
-
-    // Simulate work
-    try
-      Log.Info('Processing data...');
-      // ... do work ...
-      Log.Info('Processing completed');
-    except
-      on E: Exception do
-      begin
-        Log.Error('Processing failed', E);
-        raise;
-      end;
-    end;
-
-    Log.Info('Application finished');
+    // Something that might fail
+    raise Exception.Create('Database connection lost');
   except
     on E: Exception do
     begin
-      Writeln('FATAL: ', E.Message);
-      ExitCode := 1;
-    end;
-  end;
-end.
-```
-
-### Example 2: Service Class with Logging
-
-**Runtime Packages Required:** `LoggingFacade`
-
-```delphi
-uses
-  Logger.Intf,
-  Logger.Factory;
-
-type
-  TDataService = class
-  private
-    FLogger: ILogger;
-  public
-    constructor Create;
-    function GetUserById(AUserId: Integer): TUser;
-  end;
-
-constructor TDataService.Create;
-begin
-  inherited Create;
-  FLogger := Log;
-end;
-
-function TDataService.GetUserById(AUserId: Integer): TUser;
-begin
-  FLogger.Debug('Fetching user with ID: %d', [AUserId]);
-
-  try
-    Result := FDatabase.QueryUser(AUserId);
-
-    if Result = nil then
-    begin
-      FLogger.Warn('User not found: %d', [AUserId]);
-      Exit(nil);
-    end;
-
-    FLogger.Info('User retrieved: %s', [Result.Username]);
-  except
-    on E: Exception do
-    begin
-      FLogger.Error('Failed to fetch user %d', E);
+      Logger.Error('Operation failed', E);  // Logs with stack trace
       raise;
     end;
   end;
 end;
-```
 
-### Example 3: LoggerPro Integration
-
-**Runtime Packages Required:** `LoggingFacade`, `LoggingFacade.LoggerPro`, `LoggerPro`
-
-```delphi
-program LoggerProApp;
-
-uses
-  Logger.Intf,
-  Logger.Factory,
-  Logger.LoggerPro.Adapter,
-  Logger.Types,
-  LoggerPro,
-  LoggerPro.FileAppender,
-  LoggerPro.OutputDebugStringAppender;
-
-var
-  LLogWriter: ILogWriter;
 begin
-  // Create LoggerPro with multiple appenders
-  LLogWriter := BuildLogWriter([
-    TLoggerProFileAppender.Create(10, 5, 'logs'),
-    TLoggerProOutputDebugStringAppender.Create
-  ]);
-
-  // Configure facade to use LoggerPro
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', LLogWriter, llDebug));
-
-  // Use the facade
-  Log.Debug('Application started with LoggerPro');
-  Log.Info('Processing...');
-  Log.Debug('Processing completed');
-end.
-```
-
-### Example 4: Custom Logger Implementation
-
-**Runtime Packages Required:** `LoggingFacade`
-
-```delphi
-type
-  TMyCustomLogger = class(TInterfacedObject, ILogger)
-  private
-    procedure LogMessage(ALevel: TLogLevel; const AMessage: string);
-  public
-    // Implement all ILogger methods
-    procedure Info(const AMessage: string); overload;
-    procedure Info(const AMessage: string; const AArgs: array of const); overload;
-    // ... etc ...
+  try
+    RiskyOperation;
+  except
+    on E: Exception do
+      WriteLn('Application error: ' + E.Message);
   end;
-
-procedure TMyCustomLogger.LogMessage(ALevel: TLogLevel; const AMessage: string);
-begin
-  // Your custom logging logic here
-  // e.g., send to a remote server, database, etc.
-end;
-
-// Use your custom logger
-TLoggerFactory.SetLogger(TMyCustomLogger.Create);
+end.
 ```
 
-## Testing
+## Advanced Usage
 
-When writing unit tests, use the null logger to disable logging output:
+### Using LoggerPro Adapter
+
+LoggerPro provides high-performance asynchronous logging with multiple appenders.
 
 ```delphi
-procedure TMyTests.SetUp;
-begin
-  inherited;
-  TLoggerFactory.UseNullLogger;  // Disable logging during tests
-end;
-
-procedure TMyTests.TearDown;
-begin
-  TLoggerFactory.Reset;  // Reset to default
-  inherited;
-end;
-```
-
-## Performance Considerations
-
-1. **Level Checking**: Always check if a log level is enabled before expensive operations
-2. **Format Overloads**: **Never use `Format()` or string concatenation before calling log methods.** Always use the overloaded methods with arguments (e.g., `Log.Info('User %s', [Name])` instead of `Log.Info(Format('User %s', [Name]))`). This ensures formatting only occurs when the log level is enabled, avoiding unnecessary CPU cycles.
-3. **Null Logger**: Use the null logger in production if logging is not needed
-4. **Async Logging**: Consider using LoggerPro or QuickLogger for async logging in high-performance scenarios
-
-## Using Adapter Packages
-
-The framework provides adapter packages that can optionally be used for dynamic linking. You can also integrate adapters by including their source files directly in your project for static linking (see Installation section).
-
-### Package Dependencies
-
-```
-Your Application
-    ↓ (runtime dependency on)
-LoggingFacade.bpl (core runtime package)
-    ↓ (optionally runtime dependency on)
-LoggingFacade.LoggerPro.bpl (adapter runtime package)
-    ↓ (runtime dependency on)
-LoggerPro.bpl (external library runtime package)
-```
-
-### Step-by-Step: Using the LoggerPro Adapter
-
-#### Option A: Dynamic Linking (Runtime Packages)
-
-**1. Compile the Packages**
-
-Ensure you have:
-- LoggerPro library installed (from https://github.com/danieleteti/loggerpro)
-- Compile `LoggingFacade.dpk` → produces `LoggingFacade.bpl`
-- Compile `LoggingFacade.LoggerPro.dpk` → produces `LoggingFacade.LoggerPro.bpl`
-
-**2. Add Runtime Packages to Your Project**
-
-In your project's `.dproj` file:
-
-```xml
-<Requires>
-  <Package>LoggingFacade</Package>
-  <Package>LoggingFacade.LoggerPro</Package>
-  <Package>LoggerPro</Package>
-  <Package>rtl</Package>
-</Requires>
-```
-
-Or use the IDE: Project → Options → Packages → Runtime packages
-
-#### Option B: Static Linking (Include Source Files)
-
-Add the LoggingFacade and LoggerPro adapter source files to your project search paths:
-- Add `LoggingFacade/src` to your project paths
-- Add the adapter unit `Logger.LoggerPro.Adapter.pas` to your project
-
-**3. Use in Your Code**
-
-```delphi
-program MyApp;
+program LoggerProExample;
 
 uses
-  Logger.Intf,
   Logger.Factory,
-  Logger.LoggerPro.Adapter,
-  Logger.Types,
-  LoggerPro,
-  LoggerPro.FileAppender;
+  Logger.Intf,
+  Logger.LoggerPro.Factory,  // Helper for LoggerPro setup
+  LoggerPro,                  // LoggerPro library
+  LoggerPro.FileAppender;     // File output
 
-var
-  GLogWriter: ILogWriter;
-
-procedure InitializeLogging;
 begin
-  // Create LoggerPro instance
-  GLogWriter := BuildLogWriter([
-    TLoggerProFileAppender.Create(10, 5, 'logs')
+  // Configure LoggerPro with file appender
+  var LogWriter := BuildLogWriter([
+    TLoggerProFileAppender.Create(10, 5000, 'logs', [], TEncoding.UTF8)
   ]);
 
-  // Configure facade to use LoggerPro
-  TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', GLogWriter, llDebug));
-end;
+  // Create adapter factory
+  TLoggerFactory.SetNamedLoggerFactory(
+    function(const AName: string): ILogger
+    begin
+      Result := TLoggerProAdapter.Create(AName, LogWriter);
+    end
+  );
 
-begin
-  InitializeLogging;
-
-  // Use the facade normally
-  Log.Info('Application started');
-  // ...
+  // Use as normal
+  var Logger := TLoggerFactory.GetLogger('MyApp');
+  Logger.Info('Using LoggerPro backend!');
 end.
 ```
 
-### Step-by-Step: Using the QuickLogger Adapter
+### Using QuickLogger Adapter
 
-#### Option A: Dynamic Linking (Runtime Packages)
-
-**1. Compile the Packages**
-
-Ensure you have:
-- QuickLogger library installed (from https://github.com/exilon/QuickLogger)
-- Compile `LoggingFacade.dpk` → produces `LoggingFacade.bpl`
-- Compile `LoggingFacade.QuickLogger.dpk` → produces `LoggingFacade.QuickLogger.bpl`
-
-**2. Add Runtime Packages to Your Project**
-
-In your project's `.dproj` file:
-
-```xml
-<Requires>
-  <Package>LoggingFacade</Package>
-  <Package>LoggingFacade.QuickLogger</Package>
-  <Package>QuickLogger</Package>
-  <Package>rtl</Package>
-</Requires>
-```
-
-Or use the IDE: Project → Options → Packages → Runtime packages
-
-#### Option B: Static Linking (Include Source Files)
-
-Add the LoggingFacade and QuickLogger adapter source files to your project search paths:
-- Add `LoggingFacade/src` to your project paths
-- Add the adapter unit `Logger.QuickLogger.Adapter.pas` to your project
-
-**3. Use in Your Code**
+QuickLogger offers extensive providers for various outputs.
 
 ```delphi
-program MyApp;
+program QuickLoggerExample;
 
 uses
-  Logger.Intf,
   Logger.Factory,
+  Logger.Intf,
   Logger.QuickLogger.Adapter,
-  Logger.Types,
   Quick.Logger,
-  Quick.Logger.Provider.Files;
-
-procedure InitializeLogging;
-begin
-  // Configure QuickLogger providers
-  Quick.Logger.Logger.Providers.Add(TLogFileProvider.Create);
-
-  // Configure facade to use QuickLogger
-  TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
-end;
+  Quick.Logger.Provider.Files,
+  Quick.Logger.Provider.Console;
 
 begin
-  InitializeLogging;
+  // Configure QuickLogger
+  Logger.Providers.Add(GlobalLogFileProvider);
+  Logger.Providers.Add(GlobalLogConsoleProvider);
 
-  // Use the facade normally
-  Log.Info('Application started');
-  // ...
+  GlobalLogFileProvider.FileName := 'app.log';
+  GlobalLogFileProvider.Enabled := True;
+
+  GlobalLogConsoleProvider.Enabled := True;
+  GlobalLogConsoleProvider.ShowColors := True;
+
+  // Set up adapter factory
+  TLoggerFactory.SetNamedLoggerFactory(
+    function(const AName: string): ILogger
+    begin
+      Result := TQuickLoggerAdapter.Create(AName);
+    end
+  );
+
+  // Use facade interface
+  var AppLogger := TLoggerFactory.GetLogger('MyApp');
+  AppLogger.Info('QuickLogger backend active');
 end.
 ```
 
-### Switching Between Adapters at Runtime
+### Custom Logger Implementation
 
-You can switch logging implementations at runtime without changing application code:
-
-```delphi
-// Start with console logger
-TLoggerFactory.UseConsoleLogger(llDebug);
-Log.Info('Using console logger');
-
-// Switch to LoggerPro
-TLoggerFactory.SetLogger(TLoggerProAdapter.Create('', GLogWriter, llDebug));
-Log.Info('Now using LoggerPro');
-
-// Switch to QuickLogger
-TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
-Log.Info('Now using QuickLogger');
-
-// Disable logging completely
-TLoggerFactory.UseNullLogger;
-```
-
-### Adapter Package Benefits
-
-1. **No Forced Dependencies**: Your application doesn't need LoggerPro or QuickLogger unless you explicitly use them
-2. **Smaller Binaries**: Only include what you use
-3. **Easy Migration**: Switch between logging libraries by changing one line of code
-4. **Testing**: Use null logger in tests, real logger in production
-
-## Creating a Custom Adapter
-
-To integrate a new logging framework with LoggingFacade, follow these steps:
-
-> **Note on Packages:** You can optionally create a runtime package (`.dpk` file) for your adapter to enable dynamic linking. Alternatively, applications can use your adapter by including the source files directly in their projects (static linking).
-
-### Step 1: Create the Adapter Unit
-
-Create a new unit following the naming convention: `Logger.YourFramework.Adapter.pas`
+Create your own logger by implementing the `ILogger` interface:
 
 ```delphi
-unit Logger.YourLibrary.Adapter;
+unit MyCustomLogger;
 
 interface
 
 uses
-  System.SysUtils,
-  Logger.Intf,
-  Logger.Types,
-  YourLoggingLibrary;  // Your external logging library
+  Logger.Intf, Logger.Types, System.SysUtils;
 
 type
-  /// <summary>
-  /// Adapter for YourLibrary logging framework
-  /// </summary>
-  TYourLibraryAdapter = class(TInterfacedObject, Logger.Intf.ILogger)
+  TDatabaseLogger = class(TInterfacedObject, ILogger)
   private
-    FMinLevel: Logger.Types.TLogLevel;
-    FYourLogger: TYourLibraryLogger;  // Your library's logger instance
-
-    function IsLevelEnabled(ALevel: Logger.Types.TLogLevel): Boolean;
+    FName: string;
+    FMinLevel: TLogLevel;
+    procedure WriteToDatabase(ALevel: TLogLevel; const AMessage: string);
   public
-    constructor Create(AYourLogger: TYourLibraryLogger;
-                       AMinLevel: Logger.Types.TLogLevel = Logger.Types.llInfo);
-    destructor Destroy; override;
+    constructor Create(const AName: string);
 
     // ILogger implementation
     procedure Trace(const AMessage: string); overload;
     procedure Trace(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Debug(const AMessage: string); overload;
-    procedure Debug(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Info(const AMessage: string); overload;
-    procedure Info(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Warn(const AMessage: string); overload;
-    procedure Warn(const AMessage: string; const AArgs: array of const); overload;
-
-    procedure Error(const AMessage: string); overload;
-    procedure Error(const AMessage: string; const AArgs: array of const); overload;
-    procedure Error(const AMessage: string; AException: Exception); overload;
-
-    procedure Fatal(const AMessage: string); overload;
-    procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
-    procedure Fatal(const AMessage: string; AException: Exception); overload;
+    // ... implement all ILogger methods ...
 
     function IsTraceEnabled: Boolean;
-    function IsDebugEnabled: Boolean;
-    function IsInfoEnabled: Boolean;
-    function IsWarnEnabled: Boolean;
-    function IsErrorEnabled: Boolean;
-    function IsFatalEnabled: Boolean;
+    // ... implement all level check methods ...
 
-    procedure SetLevel(ALevel: Logger.Types.TLogLevel);
-    function GetLevel: Logger.Types.TLogLevel;
+    procedure SetLevel(ALevel: TLogLevel);
+    function GetLevel: TLogLevel;
+    function GetName: string;
   end;
 
 implementation
 
-constructor TYourLibraryAdapter.Create(AYourLogger: TYourLibraryLogger;
-                                       AMinLevel: Logger.Types.TLogLevel);
+constructor TDatabaseLogger.Create(const AName: string);
 begin
-  inherited Create;
-  FYourLogger := AYourLogger;
-  FMinLevel := AMinLevel;
+  FName := AName;
+  FMinLevel := llInfo;
 end;
 
-destructor TYourLibraryAdapter.Destroy;
+procedure TDatabaseLogger.WriteToDatabase(ALevel: TLogLevel; const AMessage: string);
 begin
-  // Clean up if needed
-  inherited;
+  // Insert log entry into database
+  // ExecuteSQL('INSERT INTO logs (level, logger, message) VALUES (?, ?, ?)',
+  //   [ALevel.ToString, FName, AMessage]);
 end;
 
-function TYourLibraryAdapter.IsLevelEnabled(ALevel: Logger.Types.TLogLevel): Boolean;
+procedure TDatabaseLogger.Info(const AMessage: string);
 begin
-  Result := ALevel >= FMinLevel;
+  if FMinLevel <= llInfo then
+    WriteToDatabase(llInfo, AMessage);
 end;
 
-procedure TYourLibraryAdapter.Info(const AMessage: string);
-begin
-  if IsLevelEnabled(Logger.Types.llInfo) then
-    FYourLogger.LogInfo(AMessage);  // Call your library's method
-end;
-
-procedure TYourLibraryAdapter.Info(const AMessage: string; const AArgs: array of const);
-begin
-  if IsLevelEnabled(Logger.Types.llInfo) then
-    FYourLogger.LogInfo(Format(AMessage, AArgs));
-end;
-
-// Implement other methods similarly...
-
-function TYourLibraryAdapter.IsInfoEnabled: Boolean;
-begin
-  Result := IsLevelEnabled(Logger.Types.llInfo);
-end;
-
-procedure TYourLibraryAdapter.SetLevel(ALevel: Logger.Types.TLogLevel);
-begin
-  FMinLevel := ALevel;
-end;
-
-function TYourLibraryAdapter.GetLevel: Logger.Types.TLogLevel;
-begin
-  Result := FMinLevel;
-end;
+// ... implement other methods ...
 
 end.
 ```
 
-### Step 2: Handle Type Conflicts
-
-If your logging library defines its own `TLogLevel` or `ILogger`, use qualified names to avoid conflicts:
+Register your custom logger:
 
 ```delphi
-// Always qualify types from the facade
-FMinLevel: Logger.Types.TLogLevel;  // Our facade's TLogLevel
-
-// Qualify your library's types
-FLibraryLevel: YourLibrary.TLogLevel;  // Library's TLogLevel
-
-// Qualify interface implementations
-TYourAdapter = class(TInterfacedObject, Logger.Intf.ILogger)
+TLoggerFactory.SetNamedLoggerFactory(
+  function(const AName: string): ILogger
+  begin
+    Result := TDatabaseLogger.Create(AName);
+  end
+);
 ```
 
-### Step 3: Map Log Levels
+### Stack Trace Configuration
 
-Create a mapping between facade log levels and your library's levels:
+#### Dynamic Loading (Production)
 
 ```delphi
-function TYourLibraryAdapter.MapLogLevel(ALevel: Logger.Types.TLogLevel): TYourLibraryLevel;
-begin
-  case ALevel of
-    Logger.Types.llTrace: Result := YourLibrary.lvTrace;
-    Logger.Types.llDebug: Result := YourLibrary.lvDebug;
-    Logger.Types.llInfo:  Result := YourLibrary.lvInfo;
-    Logger.Types.llWarn:  Result := YourLibrary.lvWarning;
-    Logger.Types.llError: Result := YourLibrary.lvError;
-    Logger.Types.llFatal: Result := YourLibrary.lvFatal;
-  else
-    Result := YourLibrary.lvInfo;
-  end;
-end;
-```
-
-### Step 4: Create the BPL Package (Optional for Dynamic Linking)
-
-If you want to support dynamic linking, create a runtime package `LoggingFacade.YourLibrary.dpk` for your adapter. This is optional - applications can also use your adapter by including the source files directly.
-
-Create `LoggingFacade.YourLibrary.dpk`:
-
-```pascal
-package LoggingFacade.YourLibrary;
-
-{$R *.res}
-{$ALIGN 8}
-{$ASSERTIONS ON}
-{$BOOLEVAL OFF}
-{$DEBUGINFO OFF}
-{$EXTENDEDSYNTAX ON}
-{$IMPORTEDDATA ON}
-{$IOCHECKS ON}
-{$LOCALSYMBOLS ON}
-{$LONGSTRINGS ON}
-{$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
-{$OVERFLOWCHECKS ON}
-{$RANGECHECKS ON}
-{$REFERENCEINFO ON}
-{$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
-{$TYPEDADDRESS OFF}
-{$VARSTRINGCHECKS ON}
-{$WRITEABLECONST OFF}
-{$MINENUMSIZE 1}
-{$IMAGEBASE $400000}
-{$DESCRIPTION 'LoggingFacade - YourLibrary adapter'}
-{$RUNONLY}
-{$IMPLICITBUILD ON}
-
-requires
-  rtl,
-  LoggingFacade,        // Core LoggingFacade package
-  YourLibraryPackage;   // Your library's package name
-
-contains
-  Logger.YourLibrary.Adapter in 'src\Logger.YourLibrary.Adapter.pas';
-
-end.
-```
-
-**For applications using your package dynamically**, add to their `.dproj` file:
-```xml
-<Requires>
-  <Package>LoggingFacade</Package>
-  <Package>LoggingFacade.YourLibrary</Package>
-  <Package>YourLibraryPackage</Package>
-  <Package>rtl</Package>
-</Requires>
-```
-
-**For static linking**, applications simply include the source file in their project instead.
-
-### Step 5: Create an Example
-
-Create `examples/YourLibraryExample/YourLibraryExample.dpr`:
-
-```delphi
-program YourLibraryExample;
-
-{$APPTYPE CONSOLE}
-
 uses
-  System.SysUtils,
-  Logger.Factory,
-  Logger.YourLibrary.Adapter,
-  Logger.Types,
-  YourLoggingLibrary;
-
-var
-  GYourLogger: TYourLibraryLogger;
-
-procedure ConfigureLogging;
-begin
-  // Initialize your library
-  GYourLogger := TYourLibraryLogger.Create;
-  GYourLogger.OutputFile := 'app.log';
-
-  // Configure facade to use your adapter
-  TLoggerFactory.SetLogger(TYourLibraryAdapter.Create(GYourLogger, llDebug));
-end;
+  Logger.StackTrace.Loader;  // Auto-loads at initialization
 
 begin
+  // Stack traces automatically available if BPL found
+  var Logger := TLoggerFactory.GetLogger('MyApp');
   try
-    ConfigureLogging;
-
-    Log.Info('Application started with YourLibrary');
-    Log.Debug('Debug message');
-    Log.Warn('Warning message');
-
-    Writeln('Check app.log for output');
-    Readln;
+    raise Exception.Create('Test error');
   except
     on E: Exception do
-    begin
-      Writeln('Error: ', E.Message);
-      Readln;
-    end;
+      Logger.Error('Operation failed', E);  // Includes stack trace
   end;
 end.
 ```
 
-### Step 6: Add Documentation
-
-Update your adapter's unit documentation with:
-
-1. **Usage instructions**
-2. **Dependencies and version requirements**
-3. **Known limitations or special considerations**
-4. **Example code**
+#### Static Linking (Development)
 
 ```delphi
-/// <summary>
-/// Adapter that bridges ILogger interface to YourLibrary.
-///
-/// Usage:
-///   var Logger: TYourLibraryLogger;
-///   Logger := TYourLibraryLogger.Create;
-///   TLoggerFactory.SetLogger(TYourLibraryAdapter.Create(Logger));
-///
-/// Requirements:
-///   - YourLibrary v2.0 or later
-///   - Windows/macOS/Linux compatible
-///
-/// Notes:
-///   - YourLibrary doesn't support Trace level, maps to Debug
-///   - Thread-safe if YourLibrary instance is thread-safe
-/// </summary>
+uses
+  Logger.StackTrace.JclDebug;  // Direct JCL dependency
+
+begin
+  // Stack traces available immediately
+  TStackTraceManager.Enable;
+
+  var Logger := TLoggerFactory.GetLogger('MyApp');
+  // Use as above
+end.
 ```
 
-### Step 7: Testing Checklist
+#### Manual Control
 
-Before publishing your adapter:
+```delphi
+// Check availability
+if TStackTraceManager.IsAvailable then
+  WriteLn('Stack traces enabled')
+else
+  WriteLn('Stack traces not available');
 
-- [ ] All ILogger methods implemented
-- [ ] Type conflicts resolved with qualified names
-- [ ] Log level mapping tested
-- [ ] Exception handling tested
-- [ ] Thread safety considered
-- [ ] Memory leaks checked
-- [ ] Example application works
-- [ ] Documentation complete
-- [ ] BPL package compiles
-- [ ] No warnings in strict mode
+// Enable/disable at runtime
+TStackTraceManager.Disable;  // Temporarily disable
+TStackTraceManager.Enable;   // Re-enable
 
-### Adapter Best Practices
+// Get current stack
+var Stack := TStackTraceManager.GetCurrentStackTrace;
+Logger.Debug('Current call stack: ' + Stack);
+```
 
-1. **Stateless if possible**: Don't maintain state unless necessary
-2. **Thread-safe**: Document thread-safety guarantees
-3. **Performance**: Check log levels before formatting messages
-4. **Resource management**: Properly manage any resources (file handles, connections)
-5. **Error handling**: Never let adapter exceptions crash the application
-6. **Documentation**: Provide clear usage examples
+## Configuration Reference
 
-## Contributing
+### Properties File Syntax
 
-To add support for a new logging framework:
+```properties
+# Comment line
+! Alternative comment
 
-1. Create a new adapter unit (e.g., `Logger.MyFramework.Adapter.pas`)
-2. Implement the `ILogger` interface
-3. Map the log levels appropriately
-4. Create a new BPL package (e.g., `LoggingFacade.MyFramework.dpk`)
-5. Add an example in the `examples/` directory
+# Root logger
+root=LEVEL
+
+# Named logger
+logger.name=LEVEL
+
+# Wildcard pattern
+logger.prefix.*=LEVEL
+
+# Levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+```
+
+### Configuration Options
+
+| Property | Description | Example |
+|----------|-------------|---------|
+| `root` | Default level for all loggers | `root=INFO` |
+| `*` | Same as root | `*=WARN` |
+| `name` | Exact logger name | `myapp.database=DEBUG` |
+| `prefix.*` | All loggers starting with prefix | `myapp.*=INFO` |
+| `*.suffix` | All loggers ending with suffix | `*.repository=DEBUG` |
+
+### Configuration Precedence
+
+1. Exact match (highest priority)
+2. Longest matching wildcard
+3. Shorter wildcards
+4. Root logger (lowest priority)
+
+### Runtime Configuration API
+
+```delphi
+// Load configuration file
+TLoggerFactory.LoadConfig('custom.properties');
+
+// Reload current configuration
+TLoggerFactory.ReloadConfig;
+
+// Set level for specific logger
+TLoggerFactory.SetLoggerLevel('app.database', llDebug);
+
+// Set level with wildcard
+TLoggerFactory.SetLoggerLevel('app.*', llInfo);
+
+// Query configured level
+var Level := TLoggerFactory.GetConfiguredLevel('app.database');
+
+// Clear all configuration
+TLoggerFactory.ClearConfig;
+```
+
+## API Reference
+
+### TLoggerFactory
+
+Central factory for creating and managing logger instances.
+
+```delphi
+class function GetLogger(const AName: string = ''): ILogger;
+// Get a logger instance. Empty name returns root logger.
+
+class procedure SetLoggerFactory(AFactoryFunc: TLoggerFactoryFunc);
+// Set custom factory function for creating loggers.
+
+class procedure SetLogger(ALogger: ILogger);
+// Set a specific logger instance to use globally.
+
+class procedure UseConsoleLogger(AMinLevel: TLogLevel = llInfo;
+                                 AUseColors: Boolean = True);
+// Configure factory to use console logger.
+
+class procedure UseNullLogger;
+// Configure factory to use null logger (no output).
+
+class procedure LoadConfig(const AFileName: string = '');
+// Load configuration from properties file.
+
+class procedure ReloadConfig;
+// Reload current configuration file.
+
+class procedure SetLoggerLevel(const ALoggerName: string;
+                              ALevel: TLogLevel);
+// Set logger level at runtime.
+
+class function GetConfiguredLevel(const ALoggerName: string;
+                                 ADefaultLevel: TLogLevel = llInfo): TLogLevel;
+// Get configured level for a logger name.
+```
+
+### ILogger Interface
+
+Core logging interface that all loggers implement.
+
+```delphi
+// Logging methods
+procedure Trace(const AMessage: string); overload;
+procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+
+procedure Debug(const AMessage: string); overload;
+procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+
+procedure Info(const AMessage: string); overload;
+procedure Info(const AMessage: string; const AArgs: array of const); overload;
+
+procedure Warn(const AMessage: string); overload;
+procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+
+procedure Error(const AMessage: string); overload;
+procedure Error(const AMessage: string; const AArgs: array of const); overload;
+procedure Error(const AMessage: string; AException: Exception); overload;
+
+procedure Fatal(const AMessage: string); overload;
+procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
+procedure Fatal(const AMessage: string; AException: Exception); overload;
+
+// Level checking
+function IsTraceEnabled: Boolean;
+function IsDebugEnabled: Boolean;
+function IsInfoEnabled: Boolean;
+function IsWarnEnabled: Boolean;
+function IsErrorEnabled: Boolean;
+function IsFatalEnabled: Boolean;
+
+// Configuration
+procedure SetLevel(ALevel: TLogLevel);
+function GetLevel: TLogLevel;
+function GetName: string;
+```
+
+### TStackTraceManager
+
+Manages stack trace providers for exception logging.
+
+```delphi
+class procedure RegisterProviderClass(AClass: TStackTraceProviderClass);
+// Register a provider class for lazy instantiation.
+
+class procedure SetProvider(AProvider: IStackTraceProvider);
+// Set provider instance directly.
+
+class procedure Enable;
+// Enable stack trace capture.
+
+class procedure Disable;
+// Disable stack trace capture.
+
+class function IsAvailable: Boolean;
+// Check if stack traces are available.
+
+class function GetStackTrace(AException: Exception): string;
+// Get stack trace for an exception.
+
+class function GetCurrentStackTrace: string;
+// Get current call stack.
+```
+
+## Examples
+
+The project includes several example applications demonstrating different features:
+
+### BasicExample
+Simple introduction to logging with different levels and basic configuration.
+
+```bash
+examples\BasicExample\BasicExample.dpr
+```
+
+### ConfigExample
+Demonstrates external configuration files, hierarchical resolution, and runtime changes.
+
+```bash
+examples\ConfigExample\ConfigExample.dpr
+```
+
+### HierarchicalDemo
+Complex multi-layer application showing hierarchical loggers across different modules.
+
+```bash
+examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dpr
+```
+
+### StackTraceExample
+Shows exception logging with stack traces using JCL Debug.
+
+```bash
+examples\StackTraceExample\StackTraceExample.dpr
+```
+
+### LoggerProExample
+Integration with LoggerPro library for high-performance logging.
+
+```bash
+examples\LoggerProExample\LoggerProExample.dpr
+```
+
+### QuickLoggerExample
+Integration with QuickLogger for feature-rich logging.
+
+```bash
+examples\QuickLoggerExample\QuickLoggerExample.dpr
+```
+
+## Best Practices
+
+### Logger Naming Conventions
+
+1. **Mirror your code structure**
+   ```delphi
+   'MyApp.UI.Forms.MainForm'
+   'MyApp.Business.Services.OrderService'
+   'MyApp.Data.Repositories.CustomerRepository'
+   ```
+
+2. **Use constants for logger names**
+   ```delphi
+   const
+     LOG_DATABASE = 'MyApp.Database';
+     LOG_API = 'MyApp.API';
+   ```
+
+3. **One logger per class**
+   ```delphi
+   type
+     TMyService = class
+     private
+       class var FLogger: ILogger;
+     public
+       class constructor Create;
+     end;
+
+   class constructor TMyService.Create;
+   begin
+     FLogger := TLoggerFactory.GetLogger('MyApp.Services.MyService');
+   end;
+   ```
+
+### Performance Considerations
+
+1. **Cache logger instances**
+   ```delphi
+   // Bad - creates logger every time
+   procedure DoWork;
+   begin
+     TLoggerFactory.GetLogger('MyApp').Info('Working...');
+   end;
+
+   // Good - reuses cached instance
+   var
+     Logger: ILogger;
+
+   procedure DoWork;
+   begin
+     if not Assigned(Logger) then
+       Logger := TLoggerFactory.GetLogger('MyApp');
+     Logger.Info('Working...');
+   end;
+   ```
+
+2. **Check level before expensive operations**
+   ```delphi
+   if Logger.IsDebugEnabled then
+   begin
+     var Data := CollectDebugData();  // Expensive
+     Logger.Debug('Data: ' + Data);
+   end;
+   ```
+
+3. **Use format strings efficiently**
+   ```delphi
+   // Good - defers formatting
+   Logger.Info('Order %d processed in %d ms', [OrderId, ElapsedMs]);
+
+   // Less efficient - always formats
+   Logger.Info(Format('Order %d processed in %d ms', [OrderId, ElapsedMs]));
+   ```
+
+### Configuration Management
+
+1. **Separate configs for environments**
+   ```
+   logging-debug.properties     # Development
+   logging.properties           # Production
+   logging-test.properties      # Testing
+   ```
+
+2. **Start general, get specific**
+   ```properties
+   # Start with broad rules
+   root=WARN
+   app.*=INFO
+
+   # Then add specific overrides
+   app.database.connection=DEBUG
+   app.critical.security=TRACE
+   ```
+
+3. **Document your configuration**
+   ```properties
+   # ===== Production Configuration =====
+   # Root: WARN to minimize noise
+   # Database: INFO for operations tracking
+   # API: ERROR only for production stability
+
+   root=WARN
+   app.database=INFO
+   app.api=ERROR
+   ```
+
+### Deployment Strategies
+
+#### Development
+- Use source files for easy debugging
+- Enable TRACE/DEBUG levels
+- Include stack trace support
+- Use console logger for immediate feedback
+
+#### Testing
+- Use null logger for unit tests
+- Mock ILogger interface for behavior testing
+- Separate test configuration file
+
+#### Production
+- Use BPL packages for shared deployment
+- Configure appropriate log levels (usually INFO/WARN)
+- Use production-grade backend (LoggerPro/QuickLogger)
+- Implement log rotation and archiving
+- Consider performance impact of logging
+
+## Troubleshooting
+
+### Common Issues
+
+#### Logger Shows Nothing
+- **Check configuration file** exists and is loaded
+- **Verify log level** - default is INFO, DEBUG/TRACE won't show
+- **Ensure correct logger name** in configuration matches code
+
+#### Configuration Not Loading
+- **File location** - must be in current/exe directory
+- **File name** - `logging-debug.properties` for DEBUG, `logging.properties` for RELEASE
+- **Syntax errors** - check for typos in properties file
+
+#### BPL Not Found
+- **Check BPL path** - must be in system PATH or app directory
+- **Version mismatch** - rebuild BPLs with same Delphi version
+- **Dependencies** - ensure LoggerPro/QuickLogger installed if using adapters
+
+#### Stack Traces Not Working
+- **JCL not installed** - requires JEDI Code Library
+- **Debug info disabled** - enable in project options
+- **Release mode** - stack traces disabled by default in RELEASE
+
+### Debug Tips
+
+1. **Enable TRACE level** to see everything:
+   ```delphi
+   TLoggerFactory.UseConsoleLogger(llTrace);
+   ```
+
+2. **Check logger name resolution**:
+   ```delphi
+   var Level := TLoggerFactory.GetConfiguredLevel('MyApp.Database');
+   WriteLn('Level for MyApp.Database: ', Level.ToString);
+   ```
+
+3. **Verify configuration loading**:
+   ```delphi
+   try
+     TLoggerFactory.LoadConfig('myconfig.properties');
+     WriteLn('Config loaded successfully');
+   except
+     on E: Exception do
+       WriteLn('Config error: ', E.Message);
+   end;
+   ```
+
+4. **Test with simple console logger first**:
+   ```delphi
+   TLoggerFactory.UseConsoleLogger(llTrace, True);
+   var Logger := TLoggerFactory.GetLogger('Test');
+   Logger.Trace('If you see this, logging works!');
+   ```
+
+## Migration Guide
+
+### From Direct LoggerPro Usage
+
+Before (direct LoggerPro):
+```delphi
+uses
+  LoggerPro;
+
+begin
+  Log.Info('Starting application');
+  Log.Debug('Debug info');
+end;
+```
+
+After (with facade):
+```delphi
+uses
+  Logger.Factory, Logger.Intf,
+  Logger.LoggerPro.Factory;  // One-time setup
+
+begin
+  // Setup (once at app start)
+  ConfigureLoggerPro;  // Your LoggerPro configuration
+
+  // Usage (throughout app)
+  var Logger := TLoggerFactory.GetLogger('MyApp');
+  Logger.Info('Starting application');
+  Logger.Debug('Debug info');
+end;
+```
+
+### From Direct QuickLogger Usage
+
+Before (direct QuickLogger):
+```delphi
+uses
+  Quick.Logger;
+
+begin
+  Logger.Info('Processing started');
+  Logger.Error('An error occurred');
+end;
+```
+
+After (with facade):
+```delphi
+uses
+  Logger.Factory, Logger.Intf,
+  Logger.QuickLogger.Adapter;
+
+begin
+  // Setup (once)
+  TLoggerFactory.SetNamedLoggerFactory(
+    function(const AName: string): ILogger
+    begin
+      Result := TQuickLoggerAdapter.Create(AName);
+    end
+  );
+
+  // Usage
+  var Logger := TLoggerFactory.GetLogger('MyApp');
+  Logger.Info('Processing started');
+  Logger.Error('An error occurred');
+end;
+```
+
+### Benefits After Migration
+
+1. **Flexibility** - Switch logging implementations without changing code
+2. **Testability** - Easy to mock ILogger interface
+3. **Configuration** - External configuration files
+4. **Consistency** - Same API across all loggers
+5. **Performance** - Logger caching and lazy initialization
+
+---
 
 ## License
 
-This is free and unencumbered software released into the public domain.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
+## Contributing
 
-- Inspired by [SLF4J](http://www.slf4j.org/) (Simple Logging Facade for Java)
-- Compatible with [LoggerPro](https://github.com/danieleteti/loggerpro)
-- Compatible with [QuickLogger](https://github.com/exilon/QuickLogger)
-
-## Version History
-
-- **1.2.0** - Stack Trace Support
-  - **Stack Trace Capture**: Optional exception stack trace support
-    - `Logger.StackTrace.pas` - Core stack trace interface and manager
-    - `Logger.StackTrace.JclDebug.pas` - JclDebug adapter implementation
-    - Thread-safe stack trace management
-    - Zero overhead when disabled
-  - **Package**:
-    - `LoggingFacade.StackTrace.JclDebug.dpk` - JclDebug adapter package
-  - **Enhanced Exception Logging**:
-    - Automatic stack trace in Error/Fatal methods with exceptions
-    - Configurable at runtime (enable/disable)
-    - Current stack trace capture support
-  - **Examples**:
-    - StackTraceExample demonstrating all stack trace features
-  - **Documentation**:
-    - Complete stack trace setup and usage guide
-    - Compiler configuration instructions
-
-- **1.1.0** - Configuration & Named Logger Support
-  - **External Configuration**: Logback-style `.properties` files
-    - Automatic loading based on DEBUG/RELEASE builds
-    - Hierarchical resolution with wildcard patterns
-    - Runtime configuration changes
-  - **Named Loggers**: Component-level logging
-    - Support for hierarchical logger names
-    - Spring Boot-style formatting
-    - Cached logger instances for performance
-  - **New Components**:
-    - `Logger.Config.pas` - Configuration manager
-  - **Extended API**:
-    - `LoadConfig()`, `ReloadConfig()`, `SetLoggerLevel()`
-    - `GetConfiguredLevel()`, `ClearConfig()`
-    - `GetName()` in ILogger interface
-    - `SetLoggerNameWidth()`, `GetLoggerNameWidth()`
-    - `SetNamedLoggerFactory()` for adapter support
-  - **Examples**:
-    - ConfigExample demonstrating configuration features
-    - Updated BasicExample with config demos
-    - Example `.properties` files for dev/prod
-
-- **1.0.0** - Initial release
-  - Core interface and factory
-  - Default console logger
-  - Null logger
-  - LoggerPro adapter
-  - QuickLogger adapter
-  - Modular BPL packages
-  - Complete examples
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-For issues, questions, or contributions, please open an issue on the project repository.
+For issues, questions, or suggestions, please open an issue on the GitHub repository.
