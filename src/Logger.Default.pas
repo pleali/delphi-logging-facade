@@ -1,3 +1,8 @@
+{******************************************************************************
+  DelphiLoggingFacade
+  Copyright (c) 2025 Paul LEALI
+  MIT License - See LICENSE file for details
+******************************************************************************}
 unit Logger.Default;
 
 {$IFDEF FPC}

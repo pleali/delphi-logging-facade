@@ -1,5 +1,7 @@
 # LoggingFacade for Delphi
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A flexible, SLF4J-inspired logging facade for Delphi that decouples application code from specific logging implementations through a clean interface-based architecture.
 
 ## Table of Contents
