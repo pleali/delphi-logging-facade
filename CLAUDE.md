@@ -32,6 +32,19 @@ When working on this codebase:
 
 If existing code violates architectural principles, the code should be refactored to conform to the architecture, not the other way around.
 
+### Language
+
+**CRITICAL:** All code, documentation, comments, commit messages, and any text content in this repository MUST be written in **English**.
+
+When working on this codebase:
+- **All documentation files** (README.md, CLAUDE.md, etc.) must be in English
+- **All code comments** must be in English
+- **All commit messages** must be in English
+- **All examples and sample applications** must use English strings and comments
+- **All error messages and user-facing text** must be in English
+
+If you encounter French or any other language in the codebase, translate it to English.
+
 ## Table of Contents
 
 1. [Development Workflow](#development-workflow)
