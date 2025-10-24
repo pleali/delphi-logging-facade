@@ -12,6 +12,9 @@
         <Projects Include="LoggingFacade.QuickLogger.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="LoggingFacade.StackTrace.JclDebug.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="examples\BasicExample\BasicExample.dproj">
             <Dependencies/>
         </Projects>
@@ -19,6 +22,9 @@
             <Dependencies/>
         </Projects>
         <Projects Include="examples\QuickLoggerExample\QuickLoggerExample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="examples\StackTraceTest\StackTraceTest.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="examples\ConfigExample\ConfigExample.dproj">
@@ -65,6 +71,15 @@
     <Target Name="LoggingFacade_QuickLogger:Make">
         <MSBuild Projects="LoggingFacade.QuickLogger.dproj" Targets="Make"/>
     </Target>
+    <Target Name="LoggingFacade_StackTrace_JclDebug">
+        <MSBuild Projects="LoggingFacade.StackTrace.JclDebug.dproj"/>
+    </Target>
+    <Target Name="LoggingFacade_StackTrace_JclDebug:Clean">
+        <MSBuild Projects="LoggingFacade.StackTrace.JclDebug.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="LoggingFacade_StackTrace_JclDebug:Make">
+        <MSBuild Projects="LoggingFacade.StackTrace.JclDebug.dproj" Targets="Make"/>
+    </Target>
     <Target Name="BasicExample">
         <MSBuild Projects="examples\BasicExample\BasicExample.dproj"/>
     </Target>
@@ -91,6 +106,15 @@
     </Target>
     <Target Name="QuickLoggerExample:Make">
         <MSBuild Projects="examples\QuickLoggerExample\QuickLoggerExample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="StackTraceTest">
+        <MSBuild Projects="examples\StackTraceTest\StackTraceTest.dproj"/>
+    </Target>
+    <Target Name="StackTraceTest:Clean">
+        <MSBuild Projects="examples\StackTraceTest\StackTraceTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="StackTraceTest:Make">
+        <MSBuild Projects="examples\StackTraceTest\StackTraceTest.dproj" Targets="Make"/>
     </Target>
     <Target Name="ConfigExample">
         <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj"/>
@@ -120,13 +144,13 @@
         <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger;BasicExample;LoggerProExample;QuickLoggerExample;ConfigExample;DataProcessorLib;HierarchyApp"/>
+        <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger;LoggingFacade_StackTrace_JclDebug;BasicExample;LoggerProExample;QuickLoggerExample;StackTraceTest;ConfigExample;DataProcessorLib;HierarchyApp"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="LoggingFacade:Clean;LoggingFacade_LoggerPro:Clean;LoggingFacade_QuickLogger:Clean;BasicExample:Clean;LoggerProExample:Clean;QuickLoggerExample:Clean;ConfigExample:Clean;DataProcessorLib:Clean;HierarchyApp:Clean"/>
+        <CallTarget Targets="LoggingFacade:Clean;LoggingFacade_LoggerPro:Clean;LoggingFacade_QuickLogger:Clean;LoggingFacade_StackTrace_JclDebug:Clean;BasicExample:Clean;LoggerProExample:Clean;QuickLoggerExample:Clean;StackTraceTest:Clean;ConfigExample:Clean;DataProcessorLib:Clean;HierarchyApp:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="LoggingFacade:Make;LoggingFacade_LoggerPro:Make;LoggingFacade_QuickLogger:Make;BasicExample:Make;LoggerProExample:Make;QuickLoggerExample:Make;ConfigExample:Make;DataProcessorLib:Make;HierarchyApp:Make"/>
+        <CallTarget Targets="LoggingFacade:Make;LoggingFacade_LoggerPro:Make;LoggingFacade_QuickLogger:Make;LoggingFacade_StackTrace_JclDebug:Make;BasicExample:Make;LoggerProExample:Make;QuickLoggerExample:Make;StackTraceTest:Make;ConfigExample:Make;DataProcessorLib:Make;HierarchyApp:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

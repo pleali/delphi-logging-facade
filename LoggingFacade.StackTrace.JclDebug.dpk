@@ -1,4 +1,4 @@
-package LoggingFacade;
+package LoggingFacade.StackTrace.JclDebug;
 
 {$R *.res}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
@@ -25,20 +25,16 @@ package LoggingFacade;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggingFacade - Core logging facade'}
+{$DESCRIPTION 'LoggingFacade - JclDebug stack trace adapter'}
 {$IMPLICITBUILD ON}
+{$RUNONLY}
 
 requires
-  rtl;
+  rtl,
+  LoggingFacade,
+  Jcl;
 
 contains
-  Logger.Types in 'src\Logger.Types.pas',
-  Logger.Intf in 'src\Logger.Intf.pas',
-  Logger.Factory in 'src\Logger.Factory.pas',
-  Logger.Default in 'src\Logger.Default.pas',
-  Logger.Null in 'src\Logger.Null.pas',
-  Logger.Config in 'src\Logger.Config.pas',
-  Logger.StackTrace in 'src\Logger.StackTrace.pas',
-  Logger.StackTrace.Mock in 'src\Logger.StackTrace.Mock.pas';
+  Logger.StackTrace.JclDebug in 'src\Logger.StackTrace.JclDebug.pas';
 
 end.

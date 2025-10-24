@@ -75,7 +75,8 @@ uses
   {$IFDEF MSWINDOWS}
   Winapi.Windows,
   {$ENDIF}
-  System.DateUtils;
+  System.DateUtils,
+  Logger.StackTrace;
 
 { TConsoleLogger }
 
@@ -254,8 +255,7 @@ end;
 procedure TConsoleLogger.Error(const AMessage: string; AException: Exception);
 begin
   if AException <> nil then
-    LogMessage(llError, Format('%s - Exception: %s: %s',
-      [AMessage, AException.ClassName, AException.Message]))
+    LogMessage(llError, TStackTraceManager.FormatExceptionMessage(AMessage, AException))
   else
     LogMessage(llError, AMessage);
 end;
@@ -273,8 +273,7 @@ end;
 procedure TConsoleLogger.Fatal(const AMessage: string; AException: Exception);
 begin
   if AException <> nil then
-    LogMessage(llFatal, Format('%s - Exception: %s: %s',
-      [AMessage, AException.ClassName, AException.Message]))
+    LogMessage(llFatal, TStackTraceManager.FormatExceptionMessage(AMessage, AException))
   else
     LogMessage(llFatal, AMessage);
 end;

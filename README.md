@@ -19,6 +19,11 @@ A flexible, SLF4J-inspired logging facade for Delphi that decouples your applica
   - Hierarchical logger names (e.g., `MyApp.Database`)
   - Cached logger instances for performance
   - Automatic name formatting in output
+- **Stack Trace Capture**: Optional exception stack trace support (NEW!)
+  - Automatic capture with JclDebug integration
+  - Shows complete call chain for exceptions
+  - Can be enabled/disabled at runtime
+  - Zero performance impact when disabled
 - **Zero Dependencies**: Core framework has no external dependencies
 - **Modular Packages**: Separate BPL packages for core and adapters
 - **Thread-Safe**: Factory and configuration are thread-safe
@@ -482,6 +487,132 @@ type
 function Log: ILogger;
 ```
 
+## Stack Trace Capture (Optional)
+
+The framework supports optional stack trace capture for exceptions using the JCL Debug library. This feature is completely optional and adds zero overhead when not used.
+
+### Requirements
+
+- **JEDI Code Library (JCL)**: Download from https://github.com/project-jedi/jcl
+- **Debug Information**: Best results with detailed map files or JCL debug data
+
+### Installation
+
+**Option 1: Dynamic Linking (Runtime Package)**
+
+1. Install JCL library
+2. Compile `LoggingFacade.StackTrace.JclDebug.dpk` → produces `LoggingFacade.StackTrace.JclDebug.bpl`
+3. Add runtime package to your project:
+
+```xml
+<Requires>
+  <Package>LoggingFacade</Package>
+  <Package>LoggingFacade.StackTrace.JclDebug</Package>
+  <Package>Jcl</Package>
+  <Package>rtl</Package>
+</Requires>
+```
+
+**Option 2: Static Linking (Include Source)**
+
+Include the source files directly in your project:
+- Add `Logger.StackTrace.pas` (already in core package)
+- Add `Logger.StackTrace.JclDebug.pas` to your project
+
+### Usage
+
+```delphi
+uses
+  Logger.Factory,
+  Logger.StackTrace,
+  Logger.StackTrace.JclDebug;
+
+begin
+  // Configure logger
+  TLoggerFactory.UseConsoleLogger(llDebug);
+
+  // Enable stack trace capture with JclDebug
+  TStackTraceManager.SetProvider(TJclDebugStackTraceProvider.Create);
+  TStackTraceManager.Enable;
+
+  // Now exceptions will include stack traces
+  try
+    DoSomething;
+  except
+    on E: Exception do
+      Log.Error('Operation failed', E);
+      // Output will include full stack trace showing call chain
+  end;
+end;
+```
+
+### Compiler Settings for Best Results
+
+**Option A: Detailed Map Files**
+- Project → Options → Linking
+- Set "Map file" to "Detailed"
+
+**Option B: JCL Debug Information (Recommended)**
+- Use JCL's "Insert JCL Debug Data" tool
+- Embeds debug info directly in the executable
+- No separate .map file needed
+
+### Example Output
+
+**Without stack trace:**
+```
+2025-01-15 10:30:45.123 ERROR : Operation failed - Exception: EAccessViolation: Access violation
+```
+
+**With stack trace:**
+```
+2025-01-15 10:30:45.123 ERROR : Operation failed - Exception: EAccessViolation: Access violation
+Stack Trace:
+  [00401234] MyUnit.ProcessData (Line 145)
+  [00401567] MyUnit.ValidateInput (Line 89)
+  [00401890] MyApp.Execute (Line 42)
+  [00402123] MyApp.Main (Line 15)
+```
+
+### Advanced Usage
+
+**Get Current Stack Trace:**
+```delphi
+// Capture stack trace at any point (not just exceptions)
+var StackTrace := TStackTraceManager.GetCurrentStackTrace;
+Log.Debug('Call stack: %s', [StackTrace]);
+```
+
+**Enable/Disable at Runtime:**
+```delphi
+// Disable for production
+TStackTraceManager.Disable;
+
+// Re-enable for debugging
+TStackTraceManager.Enable;
+```
+
+**Check if Available:**
+```delphi
+if TStackTraceManager.IsEnabled then
+  Log.Debug('Stack traces are enabled');
+```
+
+### Performance Notes
+
+- **Zero overhead when disabled**: No performance impact if not enabled
+- **Minimal overhead when enabled**: JCL stack capture is highly optimized
+- **Thread-safe**: Safe to use in multi-threaded applications
+- **On-demand formatting**: Stack traces are only formatted when exceptions occur
+
+### Example Project
+
+See `examples/StackTraceExample/StackTraceExample.dpr` for a complete demonstration including:
+- Basic stack trace capture
+- Multiple exception types
+- Nested call stacks
+- Production usage patterns
+
 ## Best Practices
 
 ### 1. Check Log Level for Expensive Operations
@@ -572,26 +703,30 @@ end;
 ```
 LoggingFacade/
 ├── src/
-│   ├── Logger.Types.pas              - Log level types and helpers
-│   ├── Logger.Intf.pas               - ILogger interface
-│   ├── Logger.Default.pas            - Default console logger
-│   ├── Logger.Null.pas               - Null logger (no output)
-│   ├── Logger.Factory.pas            - Logger factory (singleton)
-│   ├── Logger.Config.pas             - Configuration manager (.properties parser)
-│   ├── Logger.LoggerPro.Adapter.pas  - LoggerPro adapter
-│   └── Logger.QuickLogger.Adapter.pas - QuickLogger adapter
+│   ├── Logger.Types.pas                   - Log level types and helpers
+│   ├── Logger.Intf.pas                    - ILogger interface
+│   ├── Logger.Default.pas                 - Default console logger
+│   ├── Logger.Null.pas                    - Null logger (no output)
+│   ├── Logger.Factory.pas                 - Logger factory (singleton)
+│   ├── Logger.Config.pas                  - Configuration manager (.properties parser)
+│   ├── Logger.StackTrace.pas              - Stack trace interface and manager
+│   ├── Logger.StackTrace.JclDebug.pas     - JclDebug stack trace adapter
+│   ├── Logger.LoggerPro.Adapter.pas       - LoggerPro adapter
+│   └── Logger.QuickLogger.Adapter.pas     - QuickLogger adapter
 ├── examples/
-│   ├── BasicExample/                 - Basic usage examples
-│   ├── ConfigExample/                - Advanced configuration demo
-│   ├── config/                       - Example configuration files
-│   │   ├── logging-debug.properties  - Development config
-│   │   └── logging.properties        - Production config
-│   ├── LoggerProExample/             - LoggerPro integration example
-│   └── QuickLoggerExample/           - QuickLogger integration example
-├── LoggingFacade.dpk                 - Core package
-├── LoggingFacade.LoggerPro.dpk       - LoggerPro adapter package
-├── LoggingFacade.QuickLogger.dpk     - QuickLogger adapter package
-└── README.md                         - This file
+│   ├── BasicExample/                      - Basic usage examples
+│   ├── ConfigExample/                     - Advanced configuration demo
+│   ├── StackTraceExample/                 - Stack trace capture demo (NEW!)
+│   ├── config/                            - Example configuration files
+│   │   ├── logging-debug.properties       - Development config
+│   │   └── logging.properties             - Production config
+│   ├── LoggerProExample/                  - LoggerPro integration example
+│   └── QuickLoggerExample/                - QuickLogger integration example
+├── LoggingFacade.dpk                      - Core package
+├── LoggingFacade.StackTrace.JclDebug.dpk  - JclDebug stack trace adapter package (NEW!)
+├── LoggingFacade.LoggerPro.dpk            - LoggerPro adapter package
+├── LoggingFacade.QuickLogger.dpk          - QuickLogger adapter package
+└── README.md                              - This file
 ```
 
 ## Examples
@@ -1291,6 +1426,24 @@ This is free and unencumbered software released into the public domain.
 - Compatible with [QuickLogger](https://github.com/exilon/QuickLogger)
 
 ## Version History
+
+- **1.2.0** - Stack Trace Support
+  - **Stack Trace Capture**: Optional exception stack trace support
+    - `Logger.StackTrace.pas` - Core stack trace interface and manager
+    - `Logger.StackTrace.JclDebug.pas` - JclDebug adapter implementation
+    - Thread-safe stack trace management
+    - Zero overhead when disabled
+  - **Package**:
+    - `LoggingFacade.StackTrace.JclDebug.dpk` - JclDebug adapter package
+  - **Enhanced Exception Logging**:
+    - Automatic stack trace in Error/Fatal methods with exceptions
+    - Configurable at runtime (enable/disable)
+    - Current stack trace capture support
+  - **Examples**:
+    - StackTraceExample demonstrating all stack trace features
+  - **Documentation**:
+    - Complete stack trace setup and usage guide
+    - Compiler configuration instructions
 
 - **1.1.0** - Configuration & Named Logger Support
   - **External Configuration**: Logback-style `.properties` files
