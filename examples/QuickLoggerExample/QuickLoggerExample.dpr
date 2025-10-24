@@ -6,6 +6,7 @@ program QuickLoggerExample;
 
 uses
   System.SysUtils,
+  System.DateUtils,
   Logger.Types,
   Logger.Intf,
   Logger.Factory,
@@ -35,7 +36,7 @@ begin
   LFileProvider.LogLevel := LOG_ALL;
   LFileProvider.FileName := 'app.log';
   LFileProvider.MaxFileSizeInMB := 10;
-  LFileProvider.MaxBackupFiles := 5;
+  // LFileProvider.MaxBackupFiles := 5;  // Property may not exist in all QuickLogger versions
   Quick.Logger.Logger.Providers.Add(LFileProvider);
 
   Writeln('QuickLogger configured with console and file providers');
@@ -57,7 +58,7 @@ begin
   TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
 
   // Get logger instance - application code doesn't know it's using QuickLogger
-  LLogger := Log;
+  LLogger := TLoggerFactory.GetLogger;
 
   LLogger.Trace('Trace message - very detailed');
   LLogger.Debug('Debug information - check the log file!');
@@ -93,7 +94,7 @@ constructor TApiService.Create;
 begin
   inherited Create;
   // Service gets logger from factory
-  FLogger := Log;
+  FLogger := TLoggerFactory.GetLogger;
 end;
 
 function TApiService.ProcessRequest(const AEndpoint, AMethod: string): Boolean;
@@ -174,7 +175,7 @@ begin
   Writeln;
 
   TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llInfo));
-  LLogger := Log;
+  LLogger := TLoggerFactory.GetLogger;
 
   Writeln('** Without level checking (inefficient) **');
   LStartTime := Now;
@@ -183,7 +184,7 @@ begin
     LLogger.Debug('Iteration: %d with data: %s', [I, 'some expensive string']);
   end;
   LElapsedMs := MilliSecondsBetween(Now, LStartTime);
-  Writeln('Time: %d ms', [LElapsedMs]);
+  Writeln(Format('Time: %d ms', [LElapsedMs]));
   Writeln;
 
   Writeln('** With level checking (efficient) **');
@@ -194,7 +195,7 @@ begin
       LLogger.Debug('Iteration: %d with data: %s', [I, 'some expensive string']);
   end;
   LElapsedMs := MilliSecondsBetween(Now, LStartTime);
-  Writeln('Time: %d ms (much faster because debug is disabled)', [LElapsedMs]);
+  Writeln(Format('Time: %d ms (much faster because debug is disabled)', [LElapsedMs]));
   Writeln;
 end;
 
@@ -209,7 +210,7 @@ begin
   Writeln;
 
   TLoggerFactory.SetLogger(TQuickLoggerAdapter.Create('', llDebug));
-  LLogger := Log;
+  LLogger := TLoggerFactory.GetLogger;
 
   // Log with context information
   LLogger.Info('User login successful | UserID: %d | IP: %s | Duration: %dms',
