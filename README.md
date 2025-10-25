@@ -577,6 +577,118 @@ begin
 end.
 ```
 
+### Using Composite Logger
+
+The composite logger allows you to broadcast log messages to multiple destinations simultaneously without coupling your code to specific implementations.
+
+```delphi
+program CompositeLoggerExample;
+
+uses
+  Logger.Factory,
+  Logger.Intf,
+  Logger.Composite,
+  Logger.Default,
+  Logger.QuickLogger.Adapter,
+  Quick.Logger,
+  Quick.Logger.Provider.Files;
+
+var
+  CompositeLogger: ILogger;
+  ConsoleLogger: ILogger;
+  FileLogger: ILogger;
+begin
+  // Create composite logger
+  CompositeLogger := TCompositeLogger.Create('MyApp');
+
+  // Create individual loggers
+  ConsoleLogger := TConsoleLogger.Create('MyApp', llDebug, True);
+
+  // Configure QuickLogger for file output
+  GlobalLogFileProvider.FileName := 'app.log';
+  GlobalLogFileProvider.Enabled := True;
+  FileLogger := TQuickLoggerAdapter.Create('MyApp');
+
+  // Add loggers to composite
+  TCompositeLogger(CompositeLogger).AddLogger(ConsoleLogger);
+  TCompositeLogger(CompositeLogger).AddLogger(FileLogger);
+
+  // This message will be sent to both console and file
+  CompositeLogger.Info('Application started');
+  CompositeLogger.Debug('Processing data...');
+
+  // Remove a logger at runtime
+  TCompositeLogger(CompositeLogger).RemoveLogger(FileLogger);
+
+  // This will only go to console
+  CompositeLogger.Info('File logging disabled');
+
+  // Get logger count
+  WriteLn('Active loggers: ', TCompositeLogger(CompositeLogger).GetLoggerCount);
+end.
+```
+
+**Key Features:**
+- Broadcast messages to multiple loggers simultaneously
+- Add/remove loggers dynamically at runtime
+- Thread-safe for concurrent access
+- Single-point filtering: The composite handles all level filtering efficiently
+- Perfect for logging to multiple destinations (console + file, file + remote service, etc.)
+
+**Level Management:**
+The composite logger uses a "single-point filtering" strategy:
+- When you add a logger to the composite, it's automatically set to TRACE level
+- The composite logger becomes the only filter point
+- This prevents double-filtering and ensures consistent behavior
+- Changing the composite's level affects what all sub-loggers receive
+
+```delphi
+var
+  Composite: ILogger;
+  Console: ILogger;
+begin
+  Composite := TCompositeLogger.Create('MyApp', llInfo);
+  Console := TConsoleLogger.Create('', llWarn); // Created with WARN level
+
+  TCompositeLogger(Composite).AddLogger(Console);
+  // Console is now automatically set to TRACE
+  // Only the composite filters at INFO level
+
+  Composite.Debug('Hidden');  // Filtered by composite
+  Composite.Info('Visible');  // Passes composite filter, sent to console
+end;
+```
+
+**Common Use Cases:**
+```delphi
+// Example 1: Console + File logging
+var Composite := TCompositeLogger.Create('MyApp', llInfo);
+TCompositeLogger(Composite).AddLogger(TConsoleLogger.Create);
+TCompositeLogger(Composite).AddLogger(TFileLogger.Create('app.log'));
+// Both loggers will receive INFO and above messages
+
+// Example 2: Change logging level at runtime
+var Composite := TCompositeLogger.Create('MyApp', llInfo);
+TCompositeLogger(Composite).AddLogger(TConsoleLogger.Create);
+TCompositeLogger(Composite).AddLogger(TFileLogger.Create('app.log'));
+
+// Later, enable debug logging for troubleshooting
+Composite.SetLevel(llDebug);
+// Now both console and file receive DEBUG messages
+
+// Example 3: Development vs Production logging
+var Composite: ILogger;
+{$IFDEF DEBUG}
+  Composite := TCompositeLogger.Create('MyApp', llTrace);
+  TCompositeLogger(Composite).AddLogger(TConsoleLogger.Create);
+  TCompositeLogger(Composite).AddLogger(TFileLogger.Create('debug.log'));
+{$ELSE}
+  Composite := TCompositeLogger.Create('MyApp', llInfo);
+  TCompositeLogger(Composite).AddLogger(TFileLogger.Create('production.log'));
+  TCompositeLogger(Composite).AddLogger(TRemoteLogger.Create('log-server'));
+{$ENDIF}
+```
+
 ### Custom Logger Implementation
 
 Create your own logger by implementing the `ILogger` interface:
@@ -909,6 +1021,7 @@ graph TD
 - `Logger.Types.pas` - Common types and log levels
 - `Logger.Default.pas` - Console logger implementation
 - `Logger.Null.pas` - Null logger (no output)
+- `Logger.Composite.pas` - Composite logger (aggregator pattern)
 - `Logger.StackTrace.pas` - Stack trace registry
 
 #### Adapter Packages
