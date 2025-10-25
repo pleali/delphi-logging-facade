@@ -26,6 +26,7 @@ A flexible, SLF4J-inspired logging facade for Delphi that decouples application 
   - [Dynamic Linking (BPL)](#dynamic-linking-bpl)
   - [Static Linking (Source Files)](#static-linking-source-files)
 - [Advanced Usage](#advanced-usage)
+  - [Using Visual Component](#using-visual-component)
   - [Using LoggerPro Adapter](#using-loggerpro-adapter)
   - [Using QuickLogger Adapter](#using-quicklogger-adapter)
   - [Custom Logger Implementation](#custom-logger-implementation)
@@ -503,6 +504,189 @@ uses
 
 ## Advanced Usage
 
+### Using Visual Component
+
+LoggingFacade includes a non-visual Delphi component (`TLoggerComponent`) that provides event-driven logging for VCL and FMX applications. This allows you to handle log messages through events without writing custom logger implementations.
+
+#### Features
+
+- **Event-driven architecture**: Handle logs through OnTrace, OnDebug, OnInfo, OnWarn, OnError, OnFatal events
+- **Fallback event**: OnMessage event fires when specific level events are not assigned
+- **Thread-safe**: Automatically synchronizes events with the main thread
+- **Async/Sync modes**: Configurable blocking (Synchronize) or non-blocking (Queue) event dispatch
+- **Facade integration**: Can be registered with TLoggerFactory through an adapter
+
+#### Quick Start
+
+**1. Drop the component on a form:**
+
+After installing the `LoggingFacade.Component.dpk` design-time package, find `TLoggerComponent` in the Tool Palette under the "Logging" category.
+
+**2. Handle events:**
+
+```delphi
+procedure TMainForm.LoggerComponent1Message(Sender: TObject;
+  const EventData: TLogEventData);
+begin
+  // Add to memo
+  Memo1.Lines.Add(Format('[%s] %s',
+    [EventData.Level.ToString, EventData.Message]));
+
+  // Check for exceptions
+  if EventData.ExceptionClass <> '' then
+    Memo1.Lines.Add(Format('  Exception: %s: %s',
+      [EventData.ExceptionClass, EventData.ExceptionMessage]));
+end;
+```
+
+**3. Log from your code:**
+
+```delphi
+procedure TMainForm.Button1Click(Sender: TObject);
+begin
+  LoggerComponent1.Info('Button clicked');
+  LoggerComponent1.Debug('Processing started');
+end;
+```
+
+#### Event Data Structure
+
+Each event receives a `TLogEventData` record:
+
+```delphi
+TLogEventData = record
+  Level: TLogLevel;           // Log level
+  Message: string;            // Log message
+  TimeStamp: TDateTime;       // When the log occurred
+  ThreadId: TThreadID;        // Thread that logged
+  ExceptionMessage: string;   // Exception message (if any)
+  ExceptionClass: string;     // Exception class name (if any)
+end;
+```
+
+#### Specific vs Fallback Events
+
+You can handle each log level individually or use the fallback:
+
+```delphi
+// Option 1: Handle each level separately
+LoggerComponent1.OnError := HandleErrorEvent;
+LoggerComponent1.OnWarn := HandleWarnEvent;
+LoggerComponent1.OnInfo := HandleInfoEvent;
+
+// Option 2: Use fallback for all levels
+LoggerComponent1.OnMessage := HandleAllEvents;
+
+// Option 3: Mix both (specific events override fallback)
+LoggerComponent1.OnError := HandleCriticalEvent;  // Errors handled separately
+LoggerComponent1.OnMessage := HandleOtherEvents;  // All others use fallback
+```
+
+#### Async vs Sync Events
+
+```delphi
+// Non-blocking (default) - uses TThread.Queue
+LoggerComponent1.AsyncEvents := True;
+LoggerComponent1.Info('This returns immediately');
+
+// Blocking - uses TThread.Synchronize
+LoggerComponent1.AsyncEvents := False;
+LoggerComponent1.Info('This waits for event handler to complete');
+```
+
+**When to use async (default):**
+- High-frequency logging from background threads
+- Performance-critical applications
+- When event handlers don't need to block the caller
+
+**When to use sync:**
+- When you need guaranteed execution order
+- When event handlers must complete before continuing
+- During application shutdown
+
+#### Integration with LoggerFactory
+
+Register the component with the factory for seamless integration:
+
+```delphi
+uses
+  Logger.Factory, Logger.Component.Adapter;
+
+procedure TMainForm.FormCreate(Sender: TObject);
+var
+  Adapter: ILogger;
+begin
+  // Create adapter
+  Adapter := TComponentLoggerAdapter.Create(LoggerComponent1, False);
+
+  // Register with factory
+  TLoggerFactory.SetLoggerFactory(
+    function(const AName: string): ILogger
+    begin
+      Result := Adapter;
+    end);
+
+  // Now all factory loggers route to the component
+  var Logger := TLoggerFactory.GetLogger('MyApp');
+  Logger.Info('Routed to component events!');
+end;
+```
+
+#### Multi-threaded Logging Example
+
+```delphi
+procedure TMainForm.TestMultiThreadClick(Sender: TObject);
+var
+  I: Integer;
+begin
+  // Ensure async mode for thread safety
+  LoggerComponent1.AsyncEvents := True;
+
+  // Launch multiple threads
+  for I := 1 to 5 do
+  begin
+    TTask.Run(
+      procedure
+      var
+        ThreadNum: Integer;
+        J: Integer;
+      begin
+        ThreadNum := I;
+        for J := 1 to 100 do
+        begin
+          LoggerComponent1.Info(Format('Thread %d - Message %d',
+            [ThreadNum, J]));
+          Sleep(10);
+        end;
+      end);
+  end;
+end;
+```
+
+#### Properties Reference
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| **LoggerName** | string | '' | Identifier for the logger |
+| **MinLevel** | TLogLevel | llTrace | Minimum log level to process |
+| **AsyncEvents** | Boolean | True | Use async (Queue) vs sync (Synchronize) |
+| **OnTrace** | TLogEvent | nil | TRACE level event |
+| **OnDebug** | TLogEvent | nil | DEBUG level event |
+| **OnInfo** | TLogEvent | nil | INFO level event |
+| **OnWarn** | TLogEvent | nil | WARN level event |
+| **OnError** | TLogEvent | nil | ERROR level event |
+| **OnFatal** | TLogEvent | nil | FATAL level event |
+| **OnMessage** | TLogEvent | nil | Fallback event for all levels |
+
+#### Complete Example
+
+See `examples\ComponentExample\` for a complete VCL application demonstrating:
+- Event handling with colored output
+- Multi-threaded logging
+- Exception logging
+- Factory integration
+- Runtime level changes
+
 ### Using LoggerPro Adapter
 
 LoggerPro provides high-performance asynchronous logging with multiple appenders.
@@ -857,6 +1041,13 @@ Integration with QuickLogger for feature-rich logging.
 
 ```bash
 examples\QuickLoggerExample\QuickLoggerExample.dpr
+```
+
+### ComponentExample
+VCL application demonstrating the visual logging component with event-driven architecture.
+
+```bash
+examples\ComponentExample\ComponentExample.dpr
 ```
 
 ## Best Practices
