@@ -35,6 +35,6 @@ requires
   Jcl;
 
 contains
-  Logger.StackTrace.JclDebug in 'src\Logger.StackTrace.JclDebug.pas';
+  Logger.StackTrace.JclDebug in '..\src\Logger.StackTrace.JclDebug.pas';
 
 end.

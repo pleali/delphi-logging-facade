@@ -1,4 +1,4 @@
-package LoggingFacade.QuickLogger;
+package LoggingFacade.LoggerPro;
 
 {$R *.res}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
@@ -25,15 +25,16 @@ package LoggingFacade.QuickLogger;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggingFacade - QuickLogger adapter'}
+{$DESCRIPTION 'LoggingFacade - LoggerPro adapter'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires
   rtl,
-  LoggingFacade;
+  LoggingFacade,
+  loggerProRT;
 
 contains
-  Logger.QuickLogger.Adapter in 'src\Logger.QuickLogger.Adapter.pas';
+  Logger.LoggerPro.Adapter in '..\src\Logger.LoggerPro.Adapter.pas';
 
 end.

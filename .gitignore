@@ -52,6 +52,10 @@ build-logs/
 # Build script artifacts
 *.delphilsp.json
 
+# Compiled output directories
+bin/
+lib/
+
 # Castalia statistics file (since XE7 Castalia is distributed with Delphi)
 *.stat
 

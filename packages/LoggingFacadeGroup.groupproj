@@ -15,28 +15,28 @@
         <Projects Include="LoggingFacade.StackTrace.JclDebug.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\BasicExample\BasicExample.dproj">
+        <Projects Include="..\examples\BasicExample\BasicExample.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\LoggerProExample\LoggerProExample.dproj">
+        <Projects Include="..\examples\LoggerProExample\LoggerProExample.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\QuickLoggerExample\QuickLoggerExample.dproj">
+        <Projects Include="..\examples\QuickLoggerExample\QuickLoggerExample.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\StackTraceTest\StackTraceTest.dproj">
+        <Projects Include="..\examples\StackTraceTest\StackTraceTest.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj">
+        <Projects Include="..\examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\ConfigExample\ConfigExample.dproj">
+        <Projects Include="..\examples\ConfigExample\ConfigExample.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj">
+        <Projects Include="..\examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj">
+        <Projects Include="..\examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -84,76 +84,76 @@
         <MSBuild Projects="LoggingFacade.StackTrace.JclDebug.dproj" Targets="Make"/>
     </Target>
     <Target Name="BasicExample">
-        <MSBuild Projects="examples\BasicExample\BasicExample.dproj"/>
+        <MSBuild Projects="..\examples\BasicExample\BasicExample.dproj"/>
     </Target>
     <Target Name="BasicExample:Clean">
-        <MSBuild Projects="examples\BasicExample\BasicExample.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\BasicExample\BasicExample.dproj" Targets="Clean"/>
     </Target>
     <Target Name="BasicExample:Make">
-        <MSBuild Projects="examples\BasicExample\BasicExample.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\BasicExample\BasicExample.dproj" Targets="Make"/>
     </Target>
     <Target Name="LoggerProExample">
-        <MSBuild Projects="examples\LoggerProExample\LoggerProExample.dproj"/>
+        <MSBuild Projects="..\examples\LoggerProExample\LoggerProExample.dproj"/>
     </Target>
     <Target Name="LoggerProExample:Clean">
-        <MSBuild Projects="examples\LoggerProExample\LoggerProExample.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\LoggerProExample\LoggerProExample.dproj" Targets="Clean"/>
     </Target>
     <Target Name="LoggerProExample:Make">
-        <MSBuild Projects="examples\LoggerProExample\LoggerProExample.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\LoggerProExample\LoggerProExample.dproj" Targets="Make"/>
     </Target>
     <Target Name="QuickLoggerExample">
-        <MSBuild Projects="examples\QuickLoggerExample\QuickLoggerExample.dproj"/>
+        <MSBuild Projects="..\examples\QuickLoggerExample\QuickLoggerExample.dproj"/>
     </Target>
     <Target Name="QuickLoggerExample:Clean">
-        <MSBuild Projects="examples\QuickLoggerExample\QuickLoggerExample.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\QuickLoggerExample\QuickLoggerExample.dproj" Targets="Clean"/>
     </Target>
     <Target Name="QuickLoggerExample:Make">
-        <MSBuild Projects="examples\QuickLoggerExample\QuickLoggerExample.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\QuickLoggerExample\QuickLoggerExample.dproj" Targets="Make"/>
     </Target>
     <Target Name="StackTraceTest">
-        <MSBuild Projects="examples\StackTraceTest\StackTraceTest.dproj"/>
+        <MSBuild Projects="..\examples\StackTraceTest\StackTraceTest.dproj"/>
     </Target>
     <Target Name="StackTraceTest:Clean">
-        <MSBuild Projects="examples\StackTraceTest\StackTraceTest.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\StackTraceTest\StackTraceTest.dproj" Targets="Clean"/>
     </Target>
     <Target Name="StackTraceTest:Make">
-        <MSBuild Projects="examples\StackTraceTest\StackTraceTest.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\StackTraceTest\StackTraceTest.dproj" Targets="Make"/>
     </Target>
     <Target Name="DynamicLoadingTest">
-        <MSBuild Projects="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj"/>
+        <MSBuild Projects="..\examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj"/>
     </Target>
     <Target Name="DynamicLoadingTest:Clean">
-        <MSBuild Projects="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj" Targets="Clean"/>
     </Target>
     <Target Name="DynamicLoadingTest:Make">
-        <MSBuild Projects="examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\StackTraceDynamicLoader\DynamicLoadingTest.dproj" Targets="Make"/>
     </Target>
     <Target Name="ConfigExample">
-        <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj"/>
+        <MSBuild Projects="..\examples\ConfigExample\ConfigExample.dproj"/>
     </Target>
     <Target Name="ConfigExample:Clean">
-        <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\ConfigExample\ConfigExample.dproj" Targets="Clean"/>
     </Target>
     <Target Name="ConfigExample:Make">
-        <MSBuild Projects="examples\ConfigExample\ConfigExample.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\ConfigExample\ConfigExample.dproj" Targets="Make"/>
     </Target>
     <Target Name="DataProcessorLib">
-        <MSBuild Projects="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj"/>
+        <MSBuild Projects="..\examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj"/>
     </Target>
     <Target Name="DataProcessorLib:Clean">
-        <MSBuild Projects="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj" Targets="Clean"/>
     </Target>
     <Target Name="DataProcessorLib:Make">
-        <MSBuild Projects="examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\HierarchicalDemo\DataProcessorLib\DataProcessorLib.dproj" Targets="Make"/>
     </Target>
     <Target Name="HierarchyApp">
-        <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj"/>
+        <MSBuild Projects="..\examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj"/>
     </Target>
     <Target Name="HierarchyApp:Clean">
-        <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Clean"/>
     </Target>
     <Target Name="HierarchyApp:Make">
-        <MSBuild Projects="examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Make"/>
+        <MSBuild Projects="..\examples\HierarchicalDemo\HierarchyApp\HierarchyApp.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
         <CallTarget Targets="LoggingFacade;LoggingFacade_LoggerPro;LoggingFacade_QuickLogger;LoggingFacade_StackTrace_JclDebug;BasicExample;LoggerProExample;QuickLoggerExample;StackTraceTest;DynamicLoadingTest;ConfigExample;DataProcessorLib;HierarchyApp"/>

@@ -33,14 +33,14 @@ requires
   rtl;
 
 contains
-  Logger.Types in 'src\Logger.Types.pas',
-  Logger.Intf in 'src\Logger.Intf.pas',
-  Logger.Factory in 'src\Logger.Factory.pas',
-  Logger.Default in 'src\Logger.Default.pas',
-  Logger.Null in 'src\Logger.Null.pas',
-  Logger.Config in 'src\Logger.Config.pas',
-  Logger.StackTrace in 'src\Logger.StackTrace.pas',
-  Logger.StackTrace.Loader in 'src\Logger.StackTrace.Loader.pas',
-  Logger.StackTrace.Mock in 'src\Logger.StackTrace.Mock.pas';
+  Logger.Types in '..\src\Logger.Types.pas',
+  Logger.Intf in '..\src\Logger.Intf.pas',
+  Logger.Factory in '..\src\Logger.Factory.pas',
+  Logger.Default in '..\src\Logger.Default.pas',
+  Logger.Null in '..\src\Logger.Null.pas',
+  Logger.Config in '..\src\Logger.Config.pas',
+  Logger.StackTrace in '..\src\Logger.StackTrace.pas',
+  Logger.StackTrace.Loader in '..\src\Logger.StackTrace.Loader.pas',
+  Logger.StackTrace.Mock in '..\src\Logger.StackTrace.Mock.pas';
 
 end.

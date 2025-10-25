@@ -82,6 +82,9 @@
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
+        <DCC_DcuOutput>..\..\lib\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_BplOutput>..\..\bin\$(Platform)\$(Config)</DCC_BplOutput>
+        <DCC_DcpOutput>..\..\lib\$(Platform)\$(Config)</DCC_DcpOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSX64)'!=''">
         <DCC_UsePackage>rtl;LoggingFacade;$(DCC_UsePackage)</DCC_UsePackage>
