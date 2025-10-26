@@ -10,12 +10,13 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Vcl.ComCtrls,
   Logger.Types, Logger.Component, Logger.Component.Adapter, Logger.Intf,
   Logger.Factory;
 
 type
   TfrmMain = class(TForm)
-    memoLog: TMemo;
+    richLog: TRichEdit;
     pnlButtons: TPanel;
     btnTrace: TButton;
     btnDebug: TButton;
@@ -55,7 +56,9 @@ type
     FAdapter: ILogger;
 
     procedure OnLogMessage(Sender: TObject; const EventData: TLogEventData);
-    procedure AddLogToMemo(const EventData: TLogEventData);
+    procedure AddLogToRichEdit(const EventData: TLogEventData);
+    function GetLevelColor(ALevel: TLogLevel): TColor;
+    procedure AppendColoredText(const AText: string; AColor: TColor; ABold: Boolean = False);
   public
   end;
 
@@ -104,33 +107,68 @@ end;
 
 procedure TfrmMain.OnLogMessage(Sender: TObject; const EventData: TLogEventData);
 begin
-  AddLogToMemo(EventData);
+  AddLogToRichEdit(EventData);
 end;
 
-procedure TfrmMain.AddLogToMemo(const EventData: TLogEventData);
+function TfrmMain.GetLevelColor(ALevel: TLogLevel): TColor;
+begin
+  case ALevel of
+    llTrace: Result := clGray;
+    llDebug: Result := $00FF8080; // Light blue
+    llInfo:  Result := clGreen;
+    llWarn:  Result := $0000A5FF; // Orange
+    llError: Result := clRed;
+    llFatal: Result := clMaroon;
+  else
+    Result := clBlack;
+  end;
+end;
+
+procedure TfrmMain.AppendColoredText(const AText: string; AColor: TColor; ABold: Boolean);
+begin
+  richLog.SelStart := Length(richLog.Text);
+  richLog.SelLength := 0;
+  richLog.SelAttributes.Color := AColor;
+  if ABold then
+    richLog.SelAttributes.Style := [fsBold]
+  else
+    richLog.SelAttributes.Style := [];
+  richLog.SelText := AText;
+end;
+
+procedure TfrmMain.AddLogToRichEdit(const EventData: TLogEventData);
 var
-  LogLine: string;
+  LevelColor: TColor;
+  TimeStr, LevelStr: string;
 begin
   Inc(FMessageCount);
 
-  // Format log line
-  LogLine := Format('[%s] [%s] [Thread:%d] %s',
-    [FormatDateTime('hh:nn:ss.zzz', EventData.TimeStamp),
-     EventData.Level.ToString,
-     EventData.ThreadId,
-     EventData.Message]);
+  LevelColor := GetLevelColor(EventData.Level);
+  TimeStr := FormatDateTime('hh:nn:ss.zzz', EventData.TimeStamp);
+  LevelStr := EventData.Level.ToString;
 
-  // Add exception info if present
+  // Add timestamp in gray
+  AppendColoredText('[' + TimeStr + '] ', clGray);
+
+  // Add level in color with bold
+  AppendColoredText('[' + Format('%-5s', [LevelStr]) + '] ', LevelColor, True);
+
+  // Add thread ID in dark gray
+  AppendColoredText(Format('[Thread:%4d] ', [EventData.ThreadId]), $00666666);
+
+  // Add message in level color
+  AppendColoredText(EventData.Message, LevelColor);
+
+  // Add exception info if present (in red)
   if EventData.ExceptionClass <> '' then
-    LogLine := LogLine + Format(' - Exception: %s: %s',
-      [EventData.ExceptionClass, EventData.ExceptionMessage]);
+    AppendColoredText(Format(' - Exception: %s: %s',
+      [EventData.ExceptionClass, EventData.ExceptionMessage]), clMaroon, True);
 
-  // Add to memo
-  memoLog.Lines.Add(LogLine);
+  // New line
+  AppendColoredText(#13#10, clBlack);
 
   // Scroll to bottom
-  memoLog.SelStart := Length(memoLog.Text);
-  memoLog.Perform(EM_SCROLLCARET, 0, 0);
+  richLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TfrmMain.btnTraceClick(Sender: TObject);
@@ -165,7 +203,7 @@ end;
 
 procedure TfrmMain.btnClearClick(Sender: TObject);
 begin
-  memoLog.Clear;
+  richLog.Clear;
   FMessageCount := 0;
 end;
 
