@@ -82,13 +82,15 @@ type
     /// The logger's level will be automatically set to TRACE to ensure the composite
     /// is the single point of filtering.
     /// </summary>
-    /// <param name="ALogger">The logger to add</param>
+    /// <param name="ALogger">The logger to add (not const to ensure reference is held)</param>
     /// <remarks>
     /// If the logger is already registered, it will not be added again.
     /// The logger's level is set to TRACE so it doesn't filter messages -
     /// the composite logger handles all filtering.
+    /// Note: Parameter is not const to ensure a reference is acquired on entry,
+    /// preventing premature destruction during method execution.
     /// </remarks>
-    procedure AddLogger(const ALogger: ILogger);
+    procedure AddLogger(ALogger: ILogger);
 
     /// <summary>
     /// Removes a logger from the composite. The logger will no longer receive log messages.
@@ -167,7 +169,9 @@ begin
   inherited;
 end;
 
-procedure TCompositeLogger.AddLogger(const ALogger: ILogger);
+// Note: No const on ALogger parameter - ensures reference is held during method execution
+// to prevent premature destruction when calling ConfigureSubLoggerLevel
+procedure TCompositeLogger.AddLogger(ALogger: ILogger);
 begin
   if ALogger = nil then
     Exit;
