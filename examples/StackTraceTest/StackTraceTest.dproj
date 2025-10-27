@@ -98,6 +98,8 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\..\packages\LoggingFacade.dcp"/>
+        <DCCReference Include="..\..\packages\LoggingFacade.StackTrace.JclDebug.dcp"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
