@@ -13,8 +13,8 @@ interface
 
 uses
   System.SysUtils,
-  System.Classes,
   System.SyncObjs,
+  System.Generics.Collections,
   Logger.Intf,
   Logger.Types;
 
@@ -59,7 +59,7 @@ type
   private
     FName: string;
     FMinLevel: TLogLevel;
-    FLoggers: TInterfaceList;
+    FLoggers: TList<ILogger>;
     FLock: TCriticalSection;
 
     function IsLevelEnabled(ALevel: TLogLevel): Boolean;
@@ -158,7 +158,7 @@ begin
   inherited Create;
   FName := AName;
   FMinLevel := AMinLevel;
-  FLoggers := TInterfaceList.Create;
+  FLoggers := TList<ILogger>.Create;
   FLock := TCriticalSection.Create;
 end;
 
@@ -179,7 +179,7 @@ begin
   FLock.Enter;
   try
     // Avoid adding the same logger twice
-    if FLoggers.IndexOf(ALogger) = -1 then
+    if not FLoggers.Contains(ALogger) then
     begin
       // Configure sub-logger to not filter messages
       ConfigureSubLoggerLevel(ALogger);
@@ -237,7 +237,6 @@ end;
 
 procedure TCompositeLogger.Trace(const AMessage: string);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llTrace) then
@@ -245,11 +244,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Trace(AMessage);
-    end;
   finally
     FLock.Leave;
   end;
@@ -257,7 +253,6 @@ end;
 
 procedure TCompositeLogger.Trace(const AMessage: string; const AArgs: array of const);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llTrace) then
@@ -265,11 +260,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Trace(AMessage, AArgs);
-    end;
   finally
     FLock.Leave;
   end;
@@ -277,7 +269,6 @@ end;
 
 procedure TCompositeLogger.Trace(const AMessage: string; const AArgs: array of const; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llTrace) then
@@ -285,11 +276,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Trace(AMessage, AArgs, AException);
-    end;
   finally
     FLock.Leave;
   end;
@@ -297,7 +285,6 @@ end;
 
 procedure TCompositeLogger.Debug(const AMessage: string);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llDebug) then
@@ -305,11 +292,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Debug(AMessage);
-    end;
   finally
     FLock.Leave;
   end;
@@ -317,7 +301,6 @@ end;
 
 procedure TCompositeLogger.Debug(const AMessage: string; const AArgs: array of const);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llDebug) then
@@ -325,11 +308,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Debug(AMessage, AArgs);
-    end;
   finally
     FLock.Leave;
   end;
@@ -337,7 +317,6 @@ end;
 
 procedure TCompositeLogger.Debug(const AMessage: string; const AArgs: array of const; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llDebug) then
@@ -345,11 +324,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Debug(AMessage, AArgs, AException);
-    end;
   finally
     FLock.Leave;
   end;
@@ -357,7 +333,6 @@ end;
 
 procedure TCompositeLogger.Info(const AMessage: string);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llInfo) then
@@ -365,11 +340,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Info(AMessage);
-    end;
   finally
     FLock.Leave;
   end;
@@ -377,7 +349,6 @@ end;
 
 procedure TCompositeLogger.Info(const AMessage: string; const AArgs: array of const);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llInfo) then
@@ -385,11 +356,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Info(AMessage, AArgs);
-    end;
   finally
     FLock.Leave;
   end;
@@ -397,7 +365,6 @@ end;
 
 procedure TCompositeLogger.Info(const AMessage: string; const AArgs: array of const; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llInfo) then
@@ -405,11 +372,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Info(AMessage, AArgs, AException);
-    end;
   finally
     FLock.Leave;
   end;
@@ -417,7 +381,6 @@ end;
 
 procedure TCompositeLogger.Warn(const AMessage: string);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llWarn) then
@@ -425,11 +388,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Warn(AMessage);
-    end;
   finally
     FLock.Leave;
   end;
@@ -437,7 +397,6 @@ end;
 
 procedure TCompositeLogger.Warn(const AMessage: string; const AArgs: array of const);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llWarn) then
@@ -445,11 +404,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Warn(AMessage, AArgs);
-    end;
   finally
     FLock.Leave;
   end;
@@ -457,7 +413,6 @@ end;
 
 procedure TCompositeLogger.Warn(const AMessage: string; const AArgs: array of const; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llWarn) then
@@ -465,11 +420,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Warn(AMessage, AArgs, AException);
-    end;
   finally
     FLock.Leave;
   end;
@@ -477,7 +429,6 @@ end;
 
 procedure TCompositeLogger.Error(const AMessage: string);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llError) then
@@ -485,11 +436,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Error(AMessage);
-    end;
   finally
     FLock.Leave;
   end;
@@ -497,7 +445,6 @@ end;
 
 procedure TCompositeLogger.Error(const AMessage: string; const AArgs: array of const);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llError) then
@@ -505,11 +452,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Error(AMessage, AArgs);
-    end;
   finally
     FLock.Leave;
   end;
@@ -517,7 +461,6 @@ end;
 
 procedure TCompositeLogger.Error(const AMessage: string; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llError) then
@@ -525,11 +468,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Error(AMessage, AException);
-    end;
   finally
     FLock.Leave;
   end;
@@ -537,7 +477,6 @@ end;
 
 procedure TCompositeLogger.Error(const AMessage: string; const AArgs: array of const; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llError) then
@@ -545,11 +484,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Error(AMessage, AArgs, AException);
-    end;
   finally
     FLock.Leave;
   end;
@@ -557,7 +493,6 @@ end;
 
 procedure TCompositeLogger.Fatal(const AMessage: string);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llFatal) then
@@ -565,11 +500,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Fatal(AMessage);
-    end;
   finally
     FLock.Leave;
   end;
@@ -577,7 +509,6 @@ end;
 
 procedure TCompositeLogger.Fatal(const AMessage: string; const AArgs: array of const);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llFatal) then
@@ -585,11 +516,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Fatal(AMessage, AArgs);
-    end;
   finally
     FLock.Leave;
   end;
@@ -597,7 +525,6 @@ end;
 
 procedure TCompositeLogger.Fatal(const AMessage: string; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llFatal) then
@@ -605,11 +532,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Fatal(AMessage, AException);
-    end;
   finally
     FLock.Leave;
   end;
@@ -617,7 +541,6 @@ end;
 
 procedure TCompositeLogger.Fatal(const AMessage: string; const AArgs: array of const; AException: Exception);
 var
-  I: Integer;
   Logger: ILogger;
 begin
   if not IsLevelEnabled(llFatal) then
@@ -625,11 +548,8 @@ begin
 
   FLock.Enter;
   try
-    for I := 0 to FLoggers.Count - 1 do
-    begin
-      Logger := ILogger(FLoggers[I]);
+    for Logger in FLoggers do
       Logger.Fatal(AMessage, AArgs, AException);
-    end;
   finally
     FLock.Leave;
   end;
