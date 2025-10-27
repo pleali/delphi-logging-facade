@@ -14,29 +14,10 @@ interface
 uses
   System.Classes,
   System.SysUtils,
-  Logger.Types;
+  Logger.Types,
+  Logger.Intf;
 
 type
-  /// <summary>
-  /// Record containing log event data passed to event handlers.
-  /// </summary>
-  TLogEventData = record
-    Level: TLogLevel;
-    Message: string;
-    TimeStamp: TDateTime;
-    ThreadId: TThreadID;
-    ExceptionMessage: string;
-    ExceptionClass: string;
-
-    constructor Create(ALevel: TLogLevel; const AMessage: string;
-      AException: Exception = nil);
-  end;
-
-  /// <summary>
-  /// Event handler type for log events.
-  /// </summary>
-  TLogEvent = procedure(Sender: TObject; const EventData: TLogEventData) of object;
-
   /// <summary>
   /// Non-visual component that exposes logging through events.
   /// Events are synchronized with the main thread using TThread.Queue for non-blocking behavior.
@@ -52,11 +33,14 @@ type
     FOnFatal: TLogEvent;
     FOnMessage: TLogEvent;
     FMinLevel: TLogLevel;
-    FAsyncEvents: Boolean;
     FLoggerName: string;
+    FActive: Boolean;
+    FMainThreadLogger: ILogger;
 
     procedure DoFireEvent(const EventData: TLogEventData);
-    procedure SyncFireEvent(const EventData: TLogEventData);
+    procedure SetActive(const Value: Boolean);
+    procedure AttachMainThreadLoggerEvents;
+    procedure DetachMainThreadLogger;
   protected
     /// <summary>
     /// Fires the appropriate event based on log level.
@@ -65,6 +49,11 @@ type
     procedure FireEvent(const EventData: TLogEventData);
   public
     constructor Create(AOwner: TComponent); override;
+
+    /// <summary>
+    /// Destroys the component and automatically unregisters from factory if active.
+    /// </summary>
+    destructor Destroy; override;
 
     /// <summary>
     /// Logs a message at the specified level.
@@ -150,44 +139,24 @@ type
     property MinLevel: TLogLevel read FMinLevel write FMinLevel default llTrace;
 
     /// <summary>
-    /// If True, events are fired asynchronously using TThread.Queue (non-blocking).
-    /// If False, events are fired synchronously using TThread.Synchronize (blocking).
-    /// Default: True.
-    /// </summary>
-    property AsyncEvents: Boolean read FAsyncEvents write FAsyncEvents default True;
-
-    /// <summary>
     /// Logger name for identification purposes.
     /// </summary>
     property LoggerName: string read FLoggerName write FLoggerName;
+
+    /// <summary>
+    /// When True, creates a main thread logger and registers it with the factory.
+    /// When False, unregisters and releases the main thread logger.
+    /// Default: False.
+    /// </summary>
+    property Active: Boolean read FActive write SetActive default False;
   end;
 
 implementation
 
 uses
-  System.SyncObjs;
-
-{ TLogEventData }
-
-constructor TLogEventData.Create(ALevel: TLogLevel; const AMessage: string;
-  AException: Exception);
-begin
-  Level := ALevel;
-  Message := AMessage;
-  TimeStamp := Now;
-  ThreadId := TThread.Current.ThreadID;
-
-  if Assigned(AException) then
-  begin
-    ExceptionMessage := AException.Message;
-    ExceptionClass := AException.ClassName;
-  end
-  else
-  begin
-    ExceptionMessage := '';
-    ExceptionClass := '';
-  end;
-end;
+  System.SyncObjs,
+  Logger.Factory,
+  Logger.MainThread;
 
 { TLoggerComponent }
 
@@ -195,8 +164,68 @@ constructor TLoggerComponent.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FMinLevel := llTrace;
-  FAsyncEvents := True;
   FLoggerName := '';
+  FActive := False;
+  FMainThreadLogger := nil;
+end;
+
+destructor TLoggerComponent.Destroy;
+begin
+  // Automatically deactivate to unregister from factory
+  if FActive then
+    Active := False;
+  inherited;
+end;
+
+procedure TLoggerComponent.SetActive(const Value: Boolean);
+begin
+  if FActive = Value then
+    Exit;
+
+  FActive := Value;
+
+  if FActive then
+    AttachMainThreadLoggerEvents
+  else
+    DetachMainThreadLogger;
+end;
+
+procedure TLoggerComponent.AttachMainThreadLoggerEvents;
+var
+  LMainThreadLogger: TMainThreadLogger;
+begin
+  if FLoggerName = '' then
+    raise Exception.Create('LoggerName must be set before activating the component');
+
+  // Create main thread logger
+  LMainThreadLogger := TMainThreadLogger.Create(FLoggerName, FMinLevel);
+
+  // Attach events
+  LMainThreadLogger.OnTrace := FOnTrace;
+  LMainThreadLogger.OnDebug := FOnDebug;
+  LMainThreadLogger.OnInfo := FOnInfo;
+  LMainThreadLogger.OnWarn := FOnWarn;
+  LMainThreadLogger.OnError := FOnError;
+  LMainThreadLogger.OnFatal := FOnFatal;
+  LMainThreadLogger.OnMessage := FOnMessage;
+
+  // Store reference
+  FMainThreadLogger := LMainThreadLogger;
+
+  // Register with factory
+  TLoggerFactory.AddLogger(FLoggerName, FMainThreadLogger);
+end;
+
+procedure TLoggerComponent.DetachMainThreadLogger;
+begin
+  if FMainThreadLogger = nil then
+    Exit;
+
+  // Unregister from factory
+  TLoggerFactory.RemoveLogger(FLoggerName, FMainThreadLogger);
+
+  // Release reference
+  FMainThreadLogger := nil;
 end;
 
 procedure TLoggerComponent.Log(ALevel: TLogLevel; const AMessage: string;
@@ -214,29 +243,9 @@ end;
 
 procedure TLoggerComponent.FireEvent(const EventData: TLogEventData);
 begin
-  if FAsyncEvents then
-  begin
-    // Non-blocking: queue event to main thread
-    TThread.Queue(nil,
-      procedure
-      begin
-        DoFireEvent(EventData);
-      end);
-  end
-  else
-  begin
-    // Blocking: synchronize with main thread
-    SyncFireEvent(EventData);
-  end;
-end;
-
-procedure TLoggerComponent.SyncFireEvent(const EventData: TLogEventData);
-begin
-  TThread.Synchronize(nil,
-    procedure
-    begin
-      DoFireEvent(EventData);
-    end);
+  // Fire event directly (no synchronization)
+  // If thread synchronization is needed, use TMainThreadLogger via Active property
+  DoFireEvent(EventData);
 end;
 
 procedure TLoggerComponent.DoFireEvent(const EventData: TLogEventData);

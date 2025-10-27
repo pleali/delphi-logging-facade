@@ -57,12 +57,14 @@ LoggingFacade provides a unified logging interface for Delphi applications, allo
 
 - **🎭 Interface-Based Design**: Application code depends only on `ILogger` interface
 - **🌳 Hierarchical Logger Names**: SLF4J/Logback-style hierarchical logger management with `TLoggerFactory`
+- **🎯 Composite Pattern**: All loggers are composites - dynamically add/remove destinations at runtime
 - **⚙️ External Configuration**: Properties files with hierarchical resolution and wildcards
 - **🔄 Hot Reload**: Runtime configuration changes without restart
 - **📚 Multiple Implementations**: Console, Null, LoggerPro, QuickLogger adapters
+- **🎨 Visual Component**: VCL/FMX component with automatic main thread synchronization
 - **🔍 Stack Trace Support**: Optional exception stack traces with JCL Debug
-- **🔒 Thread-Safe**: Concurrent-safe factory and configuration
-- **⚡ Performance Optimized**: Logger caching, lazy initialization
+- **🔒 Thread-Safe**: Concurrent-safe factory, configuration, and automatic thread synchronization
+- **⚡ Performance Optimized**: Logger caching, lazy initialization, single-point filtering
 
 ## Quick Start Guide
 
@@ -512,9 +514,9 @@ LoggingFacade includes a non-visual Delphi component (`TLoggerComponent`) that p
 
 - **Event-driven architecture**: Handle logs through OnTrace, OnDebug, OnInfo, OnWarn, OnError, OnFatal events
 - **Fallback event**: OnMessage event fires when specific level events are not assigned
-- **Thread-safe**: Automatically synchronizes events with the main thread
-- **Async/Sync modes**: Configurable blocking (Synchronize) or non-blocking (Queue) event dispatch
-- **Facade integration**: Can be registered with TLoggerFactory through an adapter
+- **Thread-safe**: Automatically synchronizes events with the main thread using async `TThread.Queue`
+- **Factory integration**: Activate the component to integrate with TLoggerFactory automatically
+- **Automatic cleanup**: Component unregisters itself from factory on destruction
 
 #### Quick Start
 
@@ -522,13 +524,37 @@ LoggingFacade includes a non-visual Delphi component (`TLoggerComponent`) that p
 
 After installing the `LoggingFacade.Component.dpk` design-time package, find `TLoggerComponent` in the Tool Palette under the "Logging" category.
 
-**2. Handle events:**
+**2. Configure the component:**
+
+```delphi
+type
+  TMainForm = class(TForm)
+  private
+    FLogger: ILogger;  // Logger instance from factory
+  end;
+
+procedure TMainForm.FormCreate(Sender: TObject);
+begin
+  // Configure component
+  LoggerComponent1.LoggerName := 'MyApp.MainForm';
+  LoggerComponent1.MinLevel := llTrace;
+  LoggerComponent1.OnMessage := LoggerComponent1Message;
+
+  // Activate to integrate with factory
+  LoggerComponent1.Active := True;
+
+  // Get logger from factory - will route to component when Active
+  FLogger := TLoggerFactory.GetLogger('MyApp.MainForm');
+end;
+```
+
+**3. Handle events:**
 
 ```delphi
 procedure TMainForm.LoggerComponent1Message(Sender: TObject;
   const EventData: TLogEventData);
 begin
-  // Add to memo
+  // Add to memo with formatting
   Memo1.Lines.Add(Format('[%s] %s',
     [EventData.Level.ToString, EventData.Message]));
 
@@ -539,13 +565,26 @@ begin
 end;
 ```
 
-**3. Log from your code:**
+**4. Log from your code using the factory:**
 
 ```delphi
 procedure TMainForm.Button1Click(Sender: TObject);
 begin
-  LoggerComponent1.Info('Button clicked');
-  LoggerComponent1.Debug('Processing started');
+  // Log via factory - automatically routes to component events
+  FLogger.Info('Button clicked');
+  FLogger.Debug('Processing started');
+end;
+
+procedure TMainForm.ProcessData;
+begin
+  FLogger.Info('Processing data...');
+  try
+    // Do work
+    FLogger.Debug('Data processed successfully');
+  except
+    on E: Exception do
+      FLogger.Error('Processing failed', E);
+  end;
 end;
 ```
 
@@ -582,65 +621,70 @@ LoggerComponent1.OnError := HandleCriticalEvent;  // Errors handled separately
 LoggerComponent1.OnMessage := HandleOtherEvents;  // All others use fallback
 ```
 
-#### Async vs Sync Events
-
-```delphi
-// Non-blocking (default) - uses TThread.Queue
-LoggerComponent1.AsyncEvents := True;
-LoggerComponent1.Info('This returns immediately');
-
-// Blocking - uses TThread.Synchronize
-LoggerComponent1.AsyncEvents := False;
-LoggerComponent1.Info('This waits for event handler to complete');
-```
-
-**When to use async (default):**
-- High-frequency logging from background threads
-- Performance-critical applications
-- When event handlers don't need to block the caller
-
-**When to use sync:**
-- When you need guaranteed execution order
-- When event handlers must complete before continuing
-- During application shutdown
-
 #### Integration with LoggerFactory
 
-Register the component with the factory for seamless integration:
+The `Active` property provides automatic integration with `TLoggerFactory`. **Important**: Always log through the factory, not directly via the component:
 
 ```delphi
-uses
-  Logger.Factory, Logger.Component.Adapter;
+type
+  TMainForm = class(TForm)
+  private
+    FLogger: ILogger;
+  end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  Adapter: ILogger;
 begin
-  // Create adapter
-  Adapter := TComponentLoggerAdapter.Create(LoggerComponent1, False);
+  // Configure component
+  LoggerComponent1.LoggerName := 'MyApp.MainForm';
+  LoggerComponent1.MinLevel := llInfo;
+  LoggerComponent1.OnMessage := LoggerMessage;
 
-  // Register with factory
-  TLoggerFactory.SetLoggerFactory(
-    function(const AName: string): ILogger
-    begin
-      Result := Adapter;
-    end);
+  // Activate to register with factory
+  LoggerComponent1.Active := True;
+  // Internally creates TMainThreadLogger and calls TLoggerFactory.AddLogger
 
-  // Now all factory loggers route to the component
-  var Logger := TLoggerFactory.GetLogger('MyApp');
-  Logger.Info('Routed to component events!');
+  // IMPORTANT: Always get logger from factory
+  FLogger := TLoggerFactory.GetLogger('MyApp.MainForm');
+end;
+
+procedure TMainForm.SomeAction;
+begin
+  // ✅ CORRECT: Log via factory
+  FLogger.Info('This appears in the component events!');
+
+  // ❌ WRONG: Don't call component directly
+  // LoggerComponent1.Info('...');  // Don't do this!
 end;
 ```
 
+**How it works:**
+1. When `Active := True`: Creates a `TMainThreadLogger`, attaches events, and registers with `TLoggerFactory.AddLogger`
+2. `TLoggerFactory.GetLogger('MyApp.MainForm')` returns a `TCompositeLogger` containing both the default logger and the `TMainThreadLogger`
+3. When you log via factory, the message goes to the composite, which broadcasts to all registered loggers including `TMainThreadLogger`
+4. `TMainThreadLogger` synchronizes to main thread and fires the component events
+5. When `Active := False`: Calls `TLoggerFactory.RemoveLogger` and releases the logger
+6. On component destruction: Automatically sets `Active := False` to unregister
+
+**Important notes:**
+- **Always log via `TLoggerFactory.GetLogger`**, never call the component directly
+- Set `LoggerName` before activating (required)
+- Thread synchronization is handled automatically by `TMainThreadLogger`
+- The component is automatically unregistered when destroyed
+- Multiple components can use the same logger name (all receive events)
+- When Active is False, logs still go to console via the default logger
+
 #### Multi-threaded Logging Example
+
+The component automatically handles thread synchronization via `TMainThreadLogger`:
 
 ```delphi
 procedure TMainForm.TestMultiThreadClick(Sender: TObject);
 var
   I: Integer;
 begin
-  // Ensure async mode for thread safety
-  LoggerComponent1.AsyncEvents := True;
+  // Thread safety is automatic - TMainThreadLogger uses TThread.Queue
+
+  FLogger.Info('Starting multi-threaded test...');
 
   // Launch multiple threads
   for I := 1 to 5 do
@@ -648,28 +692,37 @@ begin
     TTask.Run(
       procedure
       var
-        ThreadNum: Integer;
+        ThreadLogger: ILogger;
         J: Integer;
       begin
-        ThreadNum := I;
+        // Get logger from factory in each thread
+        ThreadLogger := TLoggerFactory.GetLogger('MyApp.MainForm');
+
         for J := 1 to 100 do
         begin
-          LoggerComponent1.Info(Format('Thread %d - Message %d',
-            [ThreadNum, J]));
+          ThreadLogger.Info(Format('Thread %d - Message %d', [I, J]));
           Sleep(10);
         end;
       end);
   end;
+
+  FLogger.Info('Test started - check the event log!');
 end;
 ```
+
+**Key points:**
+- Get a logger instance from the factory in each thread
+- All messages are automatically synchronized to the main thread
+- Events fire on the main thread - safe to update UI components
+- No blocking - uses async `TThread.Queue` internally
 
 #### Properties Reference
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| **LoggerName** | string | '' | Identifier for the logger |
+| **LoggerName** | string | '' | Logger name for factory integration (required before activating) |
 | **MinLevel** | TLogLevel | llTrace | Minimum log level to process |
-| **AsyncEvents** | Boolean | True | Use async (Queue) vs sync (Synchronize) |
+| **Active** | Boolean | False | When True, registers with TLoggerFactory; False unregisters |
 | **OnTrace** | TLogEvent | nil | TRACE level event |
 | **OnDebug** | TLogEvent | nil | DEBUG level event |
 | **OnInfo** | TLogEvent | nil | INFO level event |
@@ -682,10 +735,11 @@ end;
 
 See `examples\ComponentExample\` for a complete VCL application demonstrating:
 - Event handling with colored output
-- Multi-threaded logging
+- Active property for factory integration
+- Multi-threaded logging with automatic synchronization
 - Exception logging
-- Factory integration
 - Runtime level changes
+- Automatic cleanup on component destruction
 
 ### Using LoggerPro Adapter
 
@@ -1207,13 +1261,19 @@ graph TD
 
 #### Core Package (LoggingFacade.bpl)
 - `Logger.Intf.pas` - Core `ILogger` interface
-- `Logger.Factory.pas` - Factory with hierarchical logger management
+- `Logger.Factory.pas` - Factory with hierarchical logger management and composite pattern
 - `Logger.Config.pas` - Configuration file parser with wildcards
-- `Logger.Types.pas` - Common types and log levels
+- `Logger.Types.pas` - Common types, log levels, and event data structures
 - `Logger.Default.pas` - Console logger implementation
 - `Logger.Null.pas` - Null logger (no output)
-- `Logger.Composite.pas` - Composite logger (aggregator pattern)
+- `Logger.Composite.pas` - Composite logger (multiple destination aggregator)
+- `Logger.MainThread.pas` - Main thread logger with event-driven architecture
 - `Logger.StackTrace.pas` - Stack trace registry
+
+#### Component Package (LoggingFacade.Component.dpk)
+- `Logger.Component.pas` - VCL/FMX non-visual component for event-driven logging
+- `Logger.Component.Adapter.pas` - Adapter to integrate TLoggerComponent with ILogger
+- `Logger.Component.Reg.pas` - Component registration for IDE
 
 #### Adapter Packages
 - `LoggingFacade.LoggerPro.bpl` - LoggerPro integration

@@ -19,9 +19,9 @@ uses
 
 type
   /// <summary>
-  /// Default logger implementation that writes to console and OutputDebugString.
-  /// This is a simple, zero-dependency implementation suitable for console applications
-  /// and debugging scenarios. Thread-safe for concurrent access.
+  /// Console logger implementation that writes to standard output.
+  /// This is a simple, zero-dependency implementation suitable for console applications.
+  /// Thread-safe for concurrent access with optional colored output.
   /// Supports named loggers with Spring Boot-style formatting.
   /// </summary>
   TConsoleLogger = class(TInterfacedObject, ILogger)
@@ -200,14 +200,7 @@ begin
   FLock.Enter;
   try
     FormattedMessage := FormatMessage(ALevel, AMessage);
-
-    // Write to console
     WriteToConsole(ALevel, FormattedMessage);
-
-    // Write to debug output (visible in IDE debugger)
-    {$IFDEF MSWINDOWS}
-    OutputDebugString(PChar(FormattedMessage));
-    {$ENDIF}
   finally
     FLock.Leave;
   end;

@@ -11,6 +11,10 @@ unit Logger.Types;
 
 interface
 
+uses
+  System.Classes,
+  System.SysUtils;
+
 type
   /// <summary>
   /// Enumeration of logging levels, ordered from most verbose to most severe.
@@ -39,10 +43,27 @@ type
     class function FromString(const AValue: string): TLogLevel; static;
   end;
 
-implementation
+  /// <summary>
+  /// Record containing log event data passed to event handlers.
+  /// </summary>
+  TLogEventData = record
+    Level: TLogLevel;
+    Message: string;
+    TimeStamp: TDateTime;
+    ThreadId: TThreadID;
+    ExceptionMessage: string;
+    ExceptionClass: string;
 
-uses
-  System.SysUtils;
+    constructor Create(ALevel: TLogLevel; const AMessage: string;
+      AException: Exception = nil);
+  end;
+
+  /// <summary>
+  /// Event handler type for log events.
+  /// </summary>
+  TLogEvent = procedure(Sender: TObject; const EventData: TLogEventData) of object;
+
+implementation
 
 { TLogLevelHelper }
 
@@ -80,6 +101,28 @@ begin
     Result := llFatal
   else
     Result := llInfo; // Default to Info if unknown
+end;
+
+{ TLogEventData }
+
+constructor TLogEventData.Create(ALevel: TLogLevel; const AMessage: string;
+  AException: Exception);
+begin
+  Level := ALevel;
+  Message := AMessage;
+  TimeStamp := Now;
+  ThreadId := TThread.Current.ThreadID;
+
+  if Assigned(AException) then
+  begin
+    ExceptionMessage := AException.Message;
+    ExceptionClass := AException.ClassName;
+  end
+  else
+  begin
+    ExceptionMessage := '';
+    ExceptionClass := '';
+  end;
 end;
 
 end.

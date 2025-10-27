@@ -62,6 +62,8 @@ type
     class function GetDefaultNamedLogger(const AName: string): ILogger; static;
     class procedure LoadConfigIfNeeded; static;
     class function FindConfigFile: string; static;
+    class function IsDebuggerAttached: Boolean; static;
+    class function IsConsoleApplication: Boolean; static;
   public
     /// <summary>
     /// Gets a logger instance. If AName is empty, returns the root logger.
@@ -178,6 +180,26 @@ type
     /// Thread-safe.
     /// </summary>
     class function HasLogger: Boolean; static;
+
+    /// <summary>
+    /// Adds a logger to the composite logger for the specified name.
+    /// If the logger is already registered, it will not be added again.
+    /// Creates the composite logger if it doesn't exist yet.
+    /// Thread-safe.
+    /// </summary>
+    /// <param name="ALoggerName">Logger name (empty string for root logger)</param>
+    /// <param name="ALogger">Logger instance to add</param>
+    /// <returns>The composite logger instance</returns>
+    class function AddLogger(const ALoggerName: string; ALogger: ILogger): ILogger; static;
+
+    /// <summary>
+    /// Removes a logger from the composite logger for the specified name.
+    /// The logger will be released if no other references exist.
+    /// Thread-safe.
+    /// </summary>
+    /// <param name="ALoggerName">Logger name (empty string for root logger)</param>
+    /// <param name="ALogger">Logger instance to remove</param>
+    class procedure RemoveLogger(const ALoggerName: string; ALogger: ILogger); static;
   end;
 
   /// <summary>
@@ -190,7 +212,9 @@ implementation
 
 uses
   Logger.Default,
-  Logger.Null;
+  Logger.Null,
+  Logger.Composite,
+  Logger.Debug;
 
 { TLoggerFactory }
 
@@ -277,22 +301,88 @@ begin
   end;
 end;
 
+class function TLoggerFactory.IsDebuggerAttached: Boolean;
+begin
+  {$IFDEF MSWINDOWS}
+  Result := IsDebuggerPresent;
+  {$ELSE}
+  Result := False;
+  {$ENDIF}
+end;
+
+class function TLoggerFactory.IsConsoleApplication: Boolean;
+{$IFDEF MSWINDOWS}
+var
+  ModuleHandle: HMODULE;
+  DosHeader: PImageDosHeader;
+  NtHeaders: PImageNtHeaders;
+{$ENDIF}
+begin
+  {$IFDEF MSWINDOWS}
+  // Check if the executable subsystem is console
+  ModuleHandle := GetModuleHandle(nil);
+  if ModuleHandle <> 0 then
+  begin
+    DosHeader := PImageDosHeader(ModuleHandle);
+    if (DosHeader.e_magic = IMAGE_DOS_SIGNATURE) then
+    begin
+      NtHeaders := PImageNtHeaders(NativeUInt(DosHeader) + NativeUInt(DosHeader._lfanew));
+      if (NtHeaders.Signature = IMAGE_NT_SIGNATURE) then
+      begin
+        Result := NtHeaders.OptionalHeader.Subsystem = IMAGE_SUBSYSTEM_WINDOWS_CUI;
+        Exit;
+      end;
+    end;
+  end;
+  Result := False;
+  {$ELSE}
+  // For non-Windows, default to False for GUI apps
+  Result := False;
+  {$ENDIF}
+end;
+
 class function TLoggerFactory.GetDefaultLogger: ILogger;
 var
   LLevel: TLogLevel;
+  LComposite: TCompositeLogger;
 begin
   LoadConfigIfNeeded;
   LLevel := FConfig.GetLevelForLogger('', llInfo);
-  Result := TConsoleLogger.Create('', LLevel, True);
+
+  // Create composite logger
+  LComposite := TCompositeLogger.Create('', LLevel);
+
+  // Add TDebugLogger if debugger is attached
+  if IsDebuggerAttached then
+    LComposite.AddLogger(TDebugLogger.Create('', LLevel));
+
+  // Add TConsoleLogger if this is a console application
+  if IsConsoleApplication then
+    LComposite.AddLogger(TConsoleLogger.Create('', LLevel, True));
+
+  Result := LComposite;
 end;
 
 class function TLoggerFactory.GetDefaultNamedLogger(const AName: string): ILogger;
 var
   LLevel: TLogLevel;
+  LComposite: TCompositeLogger;
 begin
   LoadConfigIfNeeded;
   LLevel := FConfig.GetLevelForLogger(AName, llInfo);
-  Result := TConsoleLogger.Create(AName, LLevel, True);
+
+  // Create composite logger
+  LComposite := TCompositeLogger.Create(AName, LLevel);
+
+  // Add TDebugLogger if debugger is attached
+  if IsDebuggerAttached then
+    LComposite.AddLogger(TDebugLogger.Create(AName, LLevel));
+
+  // Add TConsoleLogger if this is a console application
+  if IsConsoleApplication then
+    LComposite.AddLogger(TConsoleLogger.Create(AName, LLevel, True));
+
+  Result := LComposite;
 end;
 
 class function TLoggerFactory.GetLogger(const AName: string): ILogger;
@@ -314,6 +404,7 @@ begin
       try
         if FRootLogger = nil then // Double-check inside lock
         begin
+          // Get default logger (already a composite)
           if Assigned(FFactoryFunc) then
             FRootLogger := FFactoryFunc()
           else
@@ -332,7 +423,7 @@ begin
   try
     if not FNamedLoggers.TryGetValue(LFullName, Result) then
     begin
-      // Create new named logger
+      // Get default named logger (already a composite)
       if Assigned(FNamedFactoryFunc) then
         Result := FNamedFactoryFunc(LFullName)
       else
@@ -535,6 +626,61 @@ end;
 class function TLoggerFactory.HasLogger: Boolean;
 begin
   Result := FRootLogger <> nil;
+end;
+
+class function TLoggerFactory.AddLogger(const ALoggerName: string; ALogger: ILogger): ILogger;
+var
+  LFullName: string;
+  LComposite: TCompositeLogger;
+begin
+  if ALogger = nil then
+    raise EArgumentNilException.Create('Logger instance cannot be nil');
+
+  // Normalize logger name
+  LFullName := LowerCase(Trim(ALoggerName));
+
+  // Get or create the composite logger
+  Result := GetLogger(LFullName);
+
+  // Add logger to composite (composite will prevent duplicates)
+  if Result is TCompositeLogger then
+  begin
+    LComposite := TCompositeLogger(Result);
+    LComposite.AddLogger(ALogger);
+  end
+  else
+    raise Exception.Create('GetLogger did not return a TCompositeLogger instance');
+end;
+
+class procedure TLoggerFactory.RemoveLogger(const ALoggerName: string; ALogger: ILogger);
+var
+  LFullName: string;
+  LLogger: ILogger;
+  LComposite: TCompositeLogger;
+begin
+  if ALogger = nil then
+    Exit;
+
+  // Normalize logger name
+  LFullName := LowerCase(Trim(ALoggerName));
+
+  FLock.Enter;
+  try
+    // Get logger from cache (root or named)
+    if LFullName = '' then
+      LLogger := FRootLogger
+    else
+      FNamedLoggers.TryGetValue(LFullName, LLogger);
+
+    // Remove from composite if found
+    if (LLogger <> nil) and (LLogger is TCompositeLogger) then
+    begin
+      LComposite := TCompositeLogger(LLogger);
+      LComposite.RemoveLogger(ALogger);
+    end;
+  finally
+    FLock.Leave;
+  end;
 end;
 
 { Global function }

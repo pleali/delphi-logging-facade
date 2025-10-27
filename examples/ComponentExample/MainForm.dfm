@@ -18,7 +18,7 @@ object frmMain: TfrmMain
     Left = 0
     Top = 0
     Width = 900
-    Height = 289
+    Height = 220
     Align = alTop
     BevelOuter = bvNone
     Color = clWhite
@@ -27,9 +27,9 @@ object frmMain: TfrmMain
     object grpSettings: TGroupBox
       Left = 16
       Top = 8
-      Width = 440
-      Height = 105
-      Caption = ' Settings '
+      Width = 870
+      Height = 89
+      Caption = ' Logger Component Settings '
       TabOrder = 0
       object lblMinLevel: TLabel
         Left = 16
@@ -53,12 +53,12 @@ object frmMain: TfrmMain
         TabOrder = 0
         OnChange = cboMinLevelChange
       end
-      object chkAsyncEvents: TCheckBox
+      object chkActive: TCheckBox
         Left = 232
         Top = 43
-        Width = 193
+        Width = 265
         Height = 17
-        Caption = 'Async Events (non-blocking)'
+        Caption = 'Active (Register with LoggerFactory)'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -12
@@ -66,63 +66,12 @@ object frmMain: TfrmMain
         Font.Style = []
         ParentFont = False
         TabOrder = 1
-        OnClick = chkAsyncEventsClick
-      end
-    end
-    object grpFactoryTest: TGroupBox
-      Left = 470
-      Top = 8
-      Width = 416
-      Height = 105
-      Caption = ' Factory Integration Test '
-      TabOrder = 1
-      object lblFactoryStatus: TLabel
-        Left = 16
-        Top = 72
-        Width = 81
-        Height = 13
-        Caption = 'Not registered'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clGray
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object btnRegisterWithFactory: TButton
-        Left = 16
-        Top = 24
-        Width = 384
-        Height = 25
-        Caption = 'Register Component with Factory'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Segoe UI'
-        Font.Style = []
-        ParentFont = False
-        TabOrder = 0
-        OnClick = btnRegisterWithFactoryClick
-      end
-      object btnLogViaFactory: TButton
-        Left = 16
-        Top = 55
-        Width = 384
-        Height = 25
-        Caption = 'Log via Factory (test all levels)'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -12
-        Font.Name = 'Segoe UI'
-        Font.Style = []
-        ParentFont = False
-        TabOrder = 1
-        OnClick = btnLogViaFactoryClick
+        OnClick = chkActiveClick
       end
     end
     object btnTrace: TButton
       Left = 16
-      Top = 128
+      Top = 107
       Width = 140
       Height = 35
       Caption = 'TRACE'
@@ -132,12 +81,12 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = [fsBold]
       ParentFont = False
-      TabOrder = 2
+      TabOrder = 1
       OnClick = btnTraceClick
     end
     object btnDebug: TButton
       Left = 162
-      Top = 128
+      Top = 107
       Width = 140
       Height = 35
       Caption = 'DEBUG'
@@ -147,12 +96,12 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = [fsBold]
       ParentFont = False
-      TabOrder = 3
+      TabOrder = 2
       OnClick = btnDebugClick
     end
     object btnInfo: TButton
       Left = 308
-      Top = 128
+      Top = 107
       Width = 140
       Height = 35
       Caption = 'INFO'
@@ -162,12 +111,12 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = [fsBold]
       ParentFont = False
-      TabOrder = 4
+      TabOrder = 3
       OnClick = btnInfoClick
     end
     object btnWarn: TButton
       Left = 454
-      Top = 128
+      Top = 107
       Width = 140
       Height = 35
       Caption = 'WARN'
@@ -177,12 +126,12 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = [fsBold]
       ParentFont = False
-      TabOrder = 5
+      TabOrder = 4
       OnClick = btnWarnClick
     end
     object btnError: TButton
       Left = 600
-      Top = 128
+      Top = 107
       Width = 140
       Height = 35
       Caption = 'ERROR'
@@ -192,12 +141,12 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = [fsBold]
       ParentFont = False
-      TabOrder = 6
+      TabOrder = 5
       OnClick = btnErrorClick
     end
     object btnFatal: TButton
       Left = 746
-      Top = 128
+      Top = 107
       Width = 140
       Height = 35
       Caption = 'FATAL'
@@ -207,12 +156,12 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = [fsBold]
       ParentFont = False
-      TabOrder = 7
+      TabOrder = 6
       OnClick = btnFatalClick
     end
     object btnClear: TButton
       Left = 16
-      Top = 175
+      Top = 154
       Width = 870
       Height = 35
       Caption = 'Clear Log'
@@ -222,14 +171,14 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = []
       ParentFont = False
-      TabOrder = 8
+      TabOrder = 7
       OnClick = btnClearClick
     end
     object btnMultiThread: TButton
       Left = 16
-      Top = 220
+      Top = 195
       Width = 427
-      Height = 30
+      Height = 25
       Caption = 'Multi-Thread Test (5 threads x 10 messages)'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
@@ -237,14 +186,14 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = []
       ParentFont = False
-      TabOrder = 9
+      TabOrder = 8
       OnClick = btnMultiThreadClick
     end
     object btnWithException: TButton
       Left = 449
-      Top = 220
+      Top = 195
       Width = 437
-      Height = 30
+      Height = 25
       Caption = 'Log with Exception'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
@@ -252,15 +201,15 @@ object frmMain: TfrmMain
       Font.Name = 'Segoe UI'
       Font.Style = []
       ParentFont = False
-      TabOrder = 10
+      TabOrder = 9
       OnClick = btnWithExceptionClick
     end
   end
   object richLog: TRichEdit
     Left = 0
-    Top = 289
+    Top = 220
     Width = 900
-    Height = 311
+    Height = 380
     Align = alClient
     Color = 16776176
     Font.Charset = ANSI_CHARSET
@@ -274,8 +223,8 @@ object frmMain: TfrmMain
     TabOrder = 1
   end
   object LoggerComponent1: TLoggerComponent
-    LoggerName = 'MainLogger'
+    LoggerName = 'ComponentExample'
     Left = 56
-    Top = 256
+    Top = 192
   end
 end

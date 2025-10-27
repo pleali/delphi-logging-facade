@@ -37,8 +37,11 @@ contains
   Logger.Intf in '..\src\Logger.Intf.pas',
   Logger.Factory in '..\src\Logger.Factory.pas',
   Logger.Default in '..\src\Logger.Default.pas',
+  Logger.Debug in '..\src\Logger.Debug.pas',
   Logger.Null in '..\src\Logger.Null.pas',
   Logger.Config in '..\src\Logger.Config.pas',
+  Logger.Composite in '..\src\Logger.Composite.pas',
+  Logger.MainThread in '..\src\Logger.MainThread.pas',
   Logger.StackTrace in '..\src\Logger.StackTrace.pas',
   Logger.StackTrace.Loader in '..\src\Logger.StackTrace.Loader.pas',
   Logger.StackTrace.Mock in '..\src\Logger.StackTrace.Mock.pas';
