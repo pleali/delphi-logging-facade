@@ -36,7 +36,7 @@ contains
   Logger.Types in '..\src\Logger.Types.pas',
   Logger.Intf in '..\src\Logger.Intf.pas',
   Logger.Factory in '..\src\Logger.Factory.pas',
-  Logger.Default in '..\src\Logger.Default.pas',
+  Logger.Console in '..\src\Logger.Console.pas',
   Logger.Debug in '..\src\Logger.Debug.pas',
   Logger.Null in '..\src\Logger.Null.pas',
   Logger.Config in '..\src\Logger.Config.pas',

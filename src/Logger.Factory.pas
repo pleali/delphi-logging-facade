@@ -211,7 +211,7 @@ type
 implementation
 
 uses
-  Logger.Default,
+  Logger.Console,
   Logger.Null,
   Logger.Composite,
   Logger.Debug;

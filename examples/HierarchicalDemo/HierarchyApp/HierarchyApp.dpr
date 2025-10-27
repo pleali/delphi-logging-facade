@@ -10,7 +10,7 @@ uses
   Logger.Types,
   Logger.Intf,
   Logger.Factory,
-  Logger.Default,
+  Logger.Console,
   // Application units
   App.UI.MainForm in 'src\App.UI.MainForm.pas',
   App.Business.OrderProcessor in 'src\App.Business.OrderProcessor.pas',

@@ -8,7 +8,7 @@ uses
   System.SysUtils,
   Logger.Types,
   Logger.Intf,
-  Logger.Default,
+  Logger.Console,
   Logger.Null,
   Logger.Composite;
 
