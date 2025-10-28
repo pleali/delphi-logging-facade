@@ -15,7 +15,8 @@ uses
   System.SysUtils,
   System.SyncObjs,
   Logger.Intf,
-  Logger.Types;
+  Logger.Types,
+  Logger.StackTrace;
 
 type
   /// <summary>
@@ -143,7 +144,7 @@ end;
 function TBaseLogger.FormatMessage(const AMessage: string; AException: Exception): string;
 begin
   if Assigned(AException) then
-    Result := Format('%s [%s: %s]', [AMessage, AException.ClassName, AException.Message])
+    Result := TStackTraceManager.FormatExceptionMessage(AMessage, AException)
   else
     Result := AMessage;
 end;
