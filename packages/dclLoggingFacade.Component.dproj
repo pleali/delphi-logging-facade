@@ -1,10 +1,10 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{4202F56B-BFF6-4A7B-8EBB-B2DD8D9834D1}</ProjectGuid>
-        <MainSource>LoggingFacade.Component.dpk</MainSource>
+        <ProjectGuid>{C1E0A234-8B5F-4D2E-9A7C-5F2E8B9D0A1E}</ProjectGuid>
+        <MainSource>dclLoggingFacade.Component.dpk</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <ProjectName Condition="'$(ProjectName)'==''">LoggingFacade.Component</ProjectName>
+        <ProjectName Condition="'$(ProjectName)'==''">dclLoggingFacade.Component</ProjectName>
         <TargetedPlatforms>1183745</TargetedPlatforms>
         <AppType>Package</AppType>
         <FrameworkType>None</FrameworkType>
@@ -76,18 +76,19 @@
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <GenDll>true</GenDll>
         <GenPackage>true</GenPackage>
-        <SanitizedProjectName>LoggingFacade_Component</SanitizedProjectName>
-        <DCC_Description>LoggingFacade - Component Package (Runtime)</DCC_Description>
-        <VerInfo_Locale>1036</VerInfo_Locale>
+        <SanitizedProjectName>dclLoggingFacade_Component</SanitizedProjectName>
+        <DCC_Description>LoggingFacade - Component Package (Design-Time)</DCC_Description>
+        <DesignOnlyPackage>true</DesignOnlyPackage>
+        <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_DcuOutput>..\..\lib\$(Platform)\$(Config)</DCC_DcuOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSX64)'!=''">
-        <DCC_UsePackage>rtl;LoggingFacade;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>rtl;designide;LoggingFacade;LoggingFacade.Component;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSXARM64)'!=''">
-        <DCC_UsePackage>rtl;LoggingFacade;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>rtl;designide;LoggingFacade;LoggingFacade.Component;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
@@ -95,13 +96,13 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_UsePackage>rtl;LoggingFacade;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>rtl;designide;LoggingFacade;LoggingFacade.Component;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
-        <DCC_UsePackage>rtl;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>rtl;designide;LoggingFacade;LoggingFacade.Component;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64x)'!=''">
-        <DCC_UsePackage>rtl;LoggingFacade;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>rtl;designide;LoggingFacade;LoggingFacade.Component;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
@@ -126,16 +127,16 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
-        <Debugger_HostApplication>E:\Documents\Developpement\Delphi\components\DelphiLoggingFacade\bin\Win32\Debug\ComponentExample.exe</Debugger_HostApplication>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
+        <DCCReference Include="designide.dcp"/>
         <DCCReference Include="LoggingFacade.dcp"/>
-        <DCCReference Include="..\src\component\Logger.Component.pas"/>
-        <DCCReference Include="..\src\component\Logger.Component.Adapter.pas"/>
+        <DCCReference Include="LoggingFacade.Component.dcp"/>
+        <DCCReference Include="..\src\component\Logger.Component.Reg.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -154,7 +155,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">LoggingFacade.Component.dpk</Source>
+                    <Source Name="MainSource">dclLoggingFacade.Component.dpk</Source>
                 </Source>
             </Delphi.Personality>
             <Platforms>

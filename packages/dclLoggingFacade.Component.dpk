@@ -1,4 +1,4 @@
-package LoggingFacade.Component;
+package dclLoggingFacade.Component;
 
 {$R *.res}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
@@ -25,15 +25,17 @@ package LoggingFacade.Component;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'LoggingFacade - Component Package (Runtime)'}
+{$DESCRIPTION 'LoggingFacade - Component Package (Design-Time)'}
+{$DESIGNONLY}
 {$IMPLICITBUILD ON}
 
 requires
   rtl,
-  LoggingFacade;
+  designide,
+  LoggingFacade,
+  LoggingFacade.Component;
 
 contains
-  Logger.Component in '..\src\component\Logger.Component.pas',
-  Logger.Component.Adapter in '..\src\component\Logger.Component.Adapter.pas';
+  Logger.Component.Reg in '..\src\component\Logger.Component.Reg.pas';
 
 end.
