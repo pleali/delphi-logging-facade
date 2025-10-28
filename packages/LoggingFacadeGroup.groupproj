@@ -7,19 +7,19 @@
             <Dependencies/>
         </Projects>
         <Projects Include="LoggingFacade.LoggerPro.dproj">
-            <Dependencies/>
+            <Dependencies>LoggingFacade.dproj</Dependencies>
         </Projects>
         <Projects Include="LoggingFacade.QuickLogger.dproj">
-            <Dependencies/>
+            <Dependencies>LoggingFacade.dproj</Dependencies>
         </Projects>
         <Projects Include="LoggingFacade.StackTrace.JclDebug.dproj">
-            <Dependencies/>
+            <Dependencies>LoggingFacade.dproj</Dependencies>
         </Projects>
         <Projects Include="LoggingFacade.Component.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="..\examples\BasicExample\BasicExample.dproj">
-            <Dependencies/>
+            <Dependencies>LoggingFacade.dproj</Dependencies>
         </Projects>
         <Projects Include="..\examples\LoggerProExample\LoggerProExample.dproj">
             <Dependencies/>
@@ -62,31 +62,31 @@
     <Target Name="LoggingFacade:Make">
         <MSBuild Projects="LoggingFacade.dproj" Targets="Make"/>
     </Target>
-    <Target Name="LoggingFacade_LoggerPro">
+    <Target Name="LoggingFacade_LoggerPro" DependsOnTargets="LoggingFacade">
         <MSBuild Projects="LoggingFacade.LoggerPro.dproj"/>
     </Target>
-    <Target Name="LoggingFacade_LoggerPro:Clean">
+    <Target Name="LoggingFacade_LoggerPro:Clean" DependsOnTargets="LoggingFacade:Clean">
         <MSBuild Projects="LoggingFacade.LoggerPro.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="LoggingFacade_LoggerPro:Make">
+    <Target Name="LoggingFacade_LoggerPro:Make" DependsOnTargets="LoggingFacade:Make">
         <MSBuild Projects="LoggingFacade.LoggerPro.dproj" Targets="Make"/>
     </Target>
-    <Target Name="LoggingFacade_QuickLogger">
+    <Target Name="LoggingFacade_QuickLogger" DependsOnTargets="LoggingFacade">
         <MSBuild Projects="LoggingFacade.QuickLogger.dproj"/>
     </Target>
-    <Target Name="LoggingFacade_QuickLogger:Clean">
+    <Target Name="LoggingFacade_QuickLogger:Clean" DependsOnTargets="LoggingFacade:Clean">
         <MSBuild Projects="LoggingFacade.QuickLogger.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="LoggingFacade_QuickLogger:Make">
+    <Target Name="LoggingFacade_QuickLogger:Make" DependsOnTargets="LoggingFacade:Make">
         <MSBuild Projects="LoggingFacade.QuickLogger.dproj" Targets="Make"/>
     </Target>
-    <Target Name="LoggingFacade_StackTrace_JclDebug">
+    <Target Name="LoggingFacade_StackTrace_JclDebug" DependsOnTargets="LoggingFacade">
         <MSBuild Projects="LoggingFacade.StackTrace.JclDebug.dproj"/>
     </Target>
-    <Target Name="LoggingFacade_StackTrace_JclDebug:Clean">
+    <Target Name="LoggingFacade_StackTrace_JclDebug:Clean" DependsOnTargets="LoggingFacade:Clean">
         <MSBuild Projects="LoggingFacade.StackTrace.JclDebug.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="LoggingFacade_StackTrace_JclDebug:Make">
+    <Target Name="LoggingFacade_StackTrace_JclDebug:Make" DependsOnTargets="LoggingFacade:Make">
         <MSBuild Projects="LoggingFacade.StackTrace.JclDebug.dproj" Targets="Make"/>
     </Target>
     <Target Name="LoggingFacade_Component">
@@ -98,13 +98,13 @@
     <Target Name="LoggingFacade_Component:Make">
         <MSBuild Projects="LoggingFacade.Component.dproj" Targets="Make"/>
     </Target>
-    <Target Name="BasicExample">
+    <Target Name="BasicExample" DependsOnTargets="LoggingFacade">
         <MSBuild Projects="..\examples\BasicExample\BasicExample.dproj"/>
     </Target>
-    <Target Name="BasicExample:Clean">
+    <Target Name="BasicExample:Clean" DependsOnTargets="LoggingFacade:Clean">
         <MSBuild Projects="..\examples\BasicExample\BasicExample.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="BasicExample:Make">
+    <Target Name="BasicExample:Make" DependsOnTargets="LoggingFacade:Make">
         <MSBuild Projects="..\examples\BasicExample\BasicExample.dproj" Targets="Make"/>
     </Target>
     <Target Name="LoggerProExample">

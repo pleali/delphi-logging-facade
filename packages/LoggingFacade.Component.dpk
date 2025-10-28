@@ -26,7 +26,6 @@ package LoggingFacade.Component;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'LoggingFacade - Component Package'}
-{$DESIGNONLY}
 {$IMPLICITBUILD ON}
 
 requires

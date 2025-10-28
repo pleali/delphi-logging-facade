@@ -15,10 +15,17 @@ interface
 
 /// <summary>
 /// Dynamic BPL loader for stack trace providers.
-/// Automatically loads known stack trace BPL packages at initialization.
+/// Must be explicitly invoked via EnsureStackTraceProvidersLoaded.
 /// This unit should only be included when dynamic BPL loading is desired.
 /// For static linking, use the provider units directly (e.g., Logger.StackTrace.JclDebug).
 /// </summary>
+
+/// <summary>
+/// Ensures stack trace BPL providers are loaded.
+/// Safe to call multiple times (idempotent).
+/// Thread-safe.
+/// </summary>
+procedure EnsureStackTraceProvidersLoaded;
 
 {$ENDIF}
 
@@ -42,22 +49,31 @@ const
     'LoggingFacade.StackTrace.JclDebug.bpl'
   );
 
-var
+type
   /// <summary>
-  /// Handle to the loaded BPL package.
-  /// Used for cleanup in finalization.
+  /// Singleton manager for dynamic BPL loading of stack trace providers.
+  /// Ensures thread-safe, lazy initialization of the loader.
   /// </summary>
-  GLoadedBplHandle: HMODULE = 0;
+  TStackTraceLoaderManager = class sealed
+  private
+    class var FInstance: TStackTraceLoaderManager;
+    class var FClassLock: TCriticalSection;
 
-  /// <summary>
-  /// Last error message from BPL loading attempts.
-  /// </summary>
-  GLastError: string = '';
+    FLoadedBplHandle: HMODULE;
+    FLoadersInitialized: Boolean;
+    FLastError: string;
+    FLock: TCriticalSection;
 
-  /// <summary>
-  /// Critical section for thread-safe BPL loading.
-  /// </summary>
-  GLock: TCriticalSection;
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure DoLoadBplProviders;
+
+  public
+    class function Instance: TStackTraceLoaderManager; static;
+    procedure EnsureStackTraceProvidersLoaded;
+    function GetLastError: string;
+  end;
 
 /// <summary>
 /// Checks if running in debug mode.
@@ -108,16 +124,53 @@ begin
   end;
 end;
 
-/// <summary>
-/// Attempts to load known stack trace provider BPLs.
-/// Strategy:
-///   1. Search for BPL in: [exe directory, LoggingFacade.bpl directory]
-///   2. Check file existence before LoadPackage (avoids debugger exceptions)
-///   3. In Release mode: BPL must be in exe directory (security check)
-///   4. In Debug mode: BPL can be in any of the search locations
-///   5. BPL initialization will register the provider class
-/// </summary>
-procedure TryLoadBplProviders;
+{ TStackTraceLoaderManager }
+
+constructor TStackTraceLoaderManager.Create;
+begin
+  inherited Create;
+  FLock := TCriticalSection.Create;
+  FLoadedBplHandle := 0;
+  FLoadersInitialized := False;
+  FLastError := '';
+end;
+
+destructor TStackTraceLoaderManager.Destroy;
+begin
+  // Cleanup: unload BPL if loaded
+  if FLoadedBplHandle <> 0 then
+  begin
+    try
+      UnloadPackage(FLoadedBplHandle);
+    except
+      // Ignore errors during cleanup
+    end;
+  end;
+
+  FreeAndNil(FLock);
+  inherited Destroy;
+end;
+
+class function TStackTraceLoaderManager.Instance: TStackTraceLoaderManager;
+begin
+  if FInstance = nil then
+  begin
+    if FClassLock = nil then
+      FClassLock := TCriticalSection.Create;
+
+    FClassLock.Enter;
+    try
+      if FInstance = nil then
+        FInstance := TStackTraceLoaderManager.Create;
+    finally
+      FClassLock.Leave;
+    end;
+  end;
+
+  Result := FInstance;
+end;
+
+procedure TStackTraceLoaderManager.DoLoadBplProviders;
 var
   BplFileName: string;
   BplHandle: HMODULE;
@@ -130,7 +183,7 @@ var
   I: Integer;
   IsDebug: Boolean;
 begin
-  GLock.Enter;
+  FLock.Enter;
   try
     IsDebug := IsDebugMode;
     ExeDir := GetExeDirectory;
@@ -174,14 +227,14 @@ begin
             if not SameText(BplDir, ExeDir) then
             begin
               // BPL in wrong directory!
-              GLastError := Format('Stack trace BPL loaded from wrong directory: %s (expected: %s)',
+              FLastError := Format('Stack trace BPL loaded from wrong directory: %s (expected: %s)',
                 [BplPath, ExeDir]);
 
               // Log warning if logger available
               if TLoggerFactory.HasLogger then
               begin
                 try
-                  TLoggerFactory.GetLogger.Warn(GLastError);
+                  TLoggerFactory.GetLogger.Warn(FLastError);
                 except
                   // Ignore logging errors
                 end;
@@ -195,48 +248,67 @@ begin
 
           // BPL OK (or Debug mode)
           // The BPL's initialization section will register the provider class
-          GLoadedBplHandle := BplHandle;
+          FLoadedBplHandle := BplHandle;
           Exit; // First provider found, stop searching
         except
           on E: Exception do
           begin
-            GLastError := Format('Error after loading BPL %s: %s', [BplFileName, E.Message]);
+            FLastError := Format('Error after loading BPL %s: %s', [BplFileName, E.Message]);
             UnloadPackage(BplHandle);
           end;
         end;
       except
         on E: Exception do
         begin
-          GLastError := Format('Error loading BPL %s: %s', [BplFileName, E.Message]);
+          FLastError := Format('Error loading BPL %s: %s', [BplFileName, E.Message]);
         end;
       end;
     end;
   finally
-    GLock.Leave;
+    FLock.Leave;
   end;
 end;
 
-/// <summary>
-/// Returns the last error that occurred during BPL loading.
-/// Useful for diagnostics.
-/// </summary>
-function GetLastError: string;
+procedure TStackTraceLoaderManager.EnsureStackTraceProvidersLoaded;
 begin
-  Result := GLastError;
+  if FLoadersInitialized then
+    Exit;
+
+  FLock.Enter;
+  try
+    if FLoadersInitialized then
+      Exit;
+
+    DoLoadBplProviders;
+    FLoadersInitialized := True;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+function TStackTraceLoaderManager.GetLastError: string;
+begin
+  Result := FLastError;
+end;
+
+/// <summary>
+/// Public wrapper: ensures stack trace BPL providers are loaded.
+/// Thread-safe and idempotent.
+/// </summary>
+procedure EnsureStackTraceProvidersLoaded;
+begin
+  TStackTraceLoaderManager.Instance.EnsureStackTraceProvidersLoaded;
 end;
 
 initialization
-  GLock := TCriticalSection.Create;
-
-  // Automatically try to load stack trace provider BPLs
-  TryLoadBplProviders;
+  // Nothing - lazy initialization on demand via Instance
 
 finalization
-  // Cleanup: unload BPL if loaded
-  if GLoadedBplHandle <> 0 then
-    UnloadPackage(GLoadedBplHandle);
-
-  FreeAndNil(GLock);
+  // Cleanup singleton
+  if Assigned(TStackTraceLoaderManager.FInstance) then
+    FreeAndNil(TStackTraceLoaderManager.FInstance);
+  if Assigned(TStackTraceLoaderManager.FClassLock) then
+    FreeAndNil(TStackTraceLoaderManager.FClassLock);
 
 {$ENDIF}
 

@@ -58,6 +58,7 @@ type
     class constructor Create;
     class destructor Destroy;
 
+    class function CreateDefaultLoggerChain(const AName: string): ILogger; static;
     class function GetDefaultLogger: ILogger; static;
     class function GetDefaultNamedLogger(const AName: string): ILogger; static;
     class procedure LoadConfigIfNeeded; static;
@@ -213,7 +214,8 @@ implementation
 uses
   Logger.Console,
   Logger.Null,
-  Logger.Debug;
+  Logger.Debug,
+  Logger.StackTrace;
 
 { TLoggerFactory }
 
@@ -340,38 +342,7 @@ begin
   {$ENDIF}
 end;
 
-class function TLoggerFactory.GetDefaultLogger: ILogger;
-var
-  LLevel: TLogLevel;
-  LFirstLogger: ILogger;
-begin
-  LoadConfigIfNeeded;
-  LLevel := FConfig.GetLevelForLogger('', llInfo);
-
-  // Create initial logger based on environment
-  LFirstLogger := nil;
-
-  // Add TDebugLogger if debugger is attached
-  if IsDebuggerAttached then
-    LFirstLogger := TDebugLogger.Create('', LLevel);
-
-  // Add TConsoleLogger if this is a console application
-  if IsConsoleApplication then
-  begin
-    if LFirstLogger = nil then
-      LFirstLogger := TConsoleLogger.Create('', LLevel, True)
-    else
-      LFirstLogger.AddToChain(TConsoleLogger.Create('', LLevel, True));
-  end;
-
-  // If no logger was created, use a null logger
-  if LFirstLogger = nil then
-    LFirstLogger := TNullLogger.Create('');
-
-  Result := LFirstLogger;
-end;
-
-class function TLoggerFactory.GetDefaultNamedLogger(const AName: string): ILogger;
+class function TLoggerFactory.CreateDefaultLoggerChain(const AName: string): ILogger;
 var
   LLevel: TLogLevel;
   LFirstLogger: ILogger;
@@ -399,7 +370,20 @@ begin
   if LFirstLogger = nil then
     LFirstLogger := TNullLogger.Create(AName);
 
+  // Auto-enable stack trace if available
+  TStackTraceManager.TryEnableIfAvailable;
+
   Result := LFirstLogger;
+end;
+
+class function TLoggerFactory.GetDefaultLogger: ILogger;
+begin
+  Result := CreateDefaultLoggerChain('');
+end;
+
+class function TLoggerFactory.GetDefaultNamedLogger(const AName: string): ILogger;
+begin
+  Result := CreateDefaultLoggerChain(AName);
 end;
 
 class function TLoggerFactory.GetLogger(const AName: string): ILogger;

@@ -90,6 +90,14 @@ type
     class procedure SetProvider(AProvider: IStackTraceProvider);
 
     /// <summary>
+    /// Attempts to enable stack trace capture if a provider is available.
+    /// Triggers lazy initialization of the registered provider class.
+    /// Returns true if activation succeeded, false if no provider available.
+    /// Thread-safe.
+    /// </summary>
+    class function TryEnableIfAvailable: Boolean;
+
+    /// <summary>
     /// Enables stack trace capture.
     /// </summary>
     class procedure Enable;
@@ -132,7 +140,11 @@ type
 implementation
 
 uses
-  Logger.Factory;
+  Logger.Factory
+  {$IFDEF MSWINDOWS}
+  , Logger.StackTrace.Loader
+  {$ENDIF}
+  ;
 
 { TStackTraceManager }
 
@@ -190,8 +202,7 @@ begin
     begin
       try
         Instance.FProvider := FProviderClass.Create as IStackTraceProvider;
-        if (Instance.FProvider <> nil) and Instance.FProvider.IsAvailable then
-          Instance.FEnabled := True;
+        // Note: Activation is NOT automatic here. Use TryEnableIfAvailable to activate.
       except
         on E: Exception do
         begin
@@ -220,8 +231,34 @@ begin
   FLock.Enter;
   try
     Instance.FProvider := AProvider;
-    if (AProvider <> nil) and AProvider.IsAvailable then
+    // Note: Activation is NOT automatic here. Use TryEnableIfAvailable to activate.
+  finally
+    FLock.Leave;
+  end;
+end;
+
+class function TStackTraceManager.TryEnableIfAvailable: Boolean;
+var
+  Provider: IStackTraceProvider;
+begin
+  FLock.Enter;
+  try
+    // Load BPL providers if on Windows
+    {$IFDEF MSWINDOWS}
+    Logger.StackTrace.Loader.EnsureStackTraceProvidersLoaded;
+    {$ENDIF}
+
+    // Lazy initialize provider if needed
+    Provider := GetProvider;
+
+    // Activate if provider is available
+    if (Provider <> nil) and Provider.IsAvailable then
+    begin
       Instance.FEnabled := True;
+      Result := True;
+    end
+    else
+      Result := False;
   finally
     FLock.Leave;
   end;

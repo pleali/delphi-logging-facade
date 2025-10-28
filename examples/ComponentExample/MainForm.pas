@@ -256,14 +256,14 @@ begin
 end;
 
 procedure TfrmMain.btnWithExceptionClick(Sender: TObject);
-var
-  E: Exception;
 begin
-  E := Exception.Create('This is a sample exception');
   try
-    FLogger.Error('Error occurred during processing', E);
-  finally
-    E.Free;
+    raise Exception.Create('This is a sample exception');
+  except
+    on E: Exception do
+    begin
+      FLogger.Error('Error occurred during processing', E);
+    end;
   end;
 end;
 
