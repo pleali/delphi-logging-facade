@@ -14,7 +14,8 @@ interface
 uses
   System.SysUtils,
   Logger.Intf,
-  Logger.Types;
+  Logger.Types,
+  Logger.Base;
 
 type
   /// <summary>
@@ -22,53 +23,16 @@ type
   /// This logger discards all log messages - useful for testing,
   /// benchmarking, or completely disabling logging without modifying application code.
   /// All methods are no-ops and all IsXxxEnabled methods return False.
+  /// Now inherits from TBaseLogger for Chain of Responsibility support.
   /// </summary>
-  TNullLogger = class(TInterfacedObject, ILogger)
-  private
-    FName: string;
-    FLevel: TLogLevel;
+  TNullLogger = class(TBaseLogger)
+  protected
+    /// <summary>
+    /// Does nothing - all messages are discarded.
+    /// </summary>
+    procedure DoLog(ALevel: TLogLevel; const AMessage: string); override;
   public
     constructor Create(const AName: string = '');
-
-    // ILogger implementation - all methods do nothing
-    procedure Trace(const AMessage: string); overload;
-    procedure Trace(const AMessage: string; const AArgs: array of const); overload;
-    procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
-
-    procedure Debug(const AMessage: string); overload;
-    procedure Debug(const AMessage: string; const AArgs: array of const); overload;
-    procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
-
-    procedure Info(const AMessage: string); overload;
-    procedure Info(const AMessage: string; const AArgs: array of const); overload;
-    procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
-
-    procedure Warn(const AMessage: string); overload;
-    procedure Warn(const AMessage: string; const AArgs: array of const); overload;
-    procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
-
-    procedure Error(const AMessage: string); overload;
-    procedure Error(const AMessage: string; const AArgs: array of const); overload;
-    procedure Error(const AMessage: string; AException: Exception); overload;
-    procedure Error(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
-
-    procedure Fatal(const AMessage: string); overload;
-    procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
-    procedure Fatal(const AMessage: string; AException: Exception); overload;
-    procedure Fatal(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
-
-    // All level checks return False
-    function IsTraceEnabled: Boolean;
-    function IsDebugEnabled: Boolean;
-    function IsInfoEnabled: Boolean;
-    function IsWarnEnabled: Boolean;
-    function IsErrorEnabled: Boolean;
-    function IsFatalEnabled: Boolean;
-
-    procedure SetLevel(ALevel: TLogLevel);
-    function GetLevel: TLogLevel;
-
-    function GetName: string;
   end;
 
 implementation
@@ -77,157 +41,13 @@ implementation
 
 constructor TNullLogger.Create(const AName: string);
 begin
-  inherited Create;
-  FName := AName;
-  FLevel := llFatal; // Highest level - effectively disables all logging
+  // Set to a level above FATAL to effectively disable all logging
+  inherited Create(AName, TLogLevel(Ord(llFatal) + 1));
 end;
 
-// All logging methods are no-ops
-procedure TNullLogger.Trace(const AMessage: string);
+procedure TNullLogger.DoLog(ALevel: TLogLevel; const AMessage: string);
 begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Trace(const AMessage: string; const AArgs: array of const);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Debug(const AMessage: string);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Debug(const AMessage: string; const AArgs: array of const);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Info(const AMessage: string);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Info(const AMessage: string; const AArgs: array of const);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Warn(const AMessage: string);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Warn(const AMessage: string; const AArgs: array of const);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Error(const AMessage: string);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Error(const AMessage: string; const AArgs: array of const);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Error(const AMessage: string; AException: Exception);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Fatal(const AMessage: string);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Fatal(const AMessage: string; const AArgs: array of const);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Fatal(const AMessage: string; AException: Exception);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Trace(const AMessage: string; const AArgs: array of const; AException: Exception);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Debug(const AMessage: string; const AArgs: array of const; AException: Exception);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Info(const AMessage: string; const AArgs: array of const; AException: Exception);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Warn(const AMessage: string; const AArgs: array of const; AException: Exception);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Error(const AMessage: string; const AArgs: array of const; AException: Exception);
-begin
-  // Do nothing
-end;
-
-procedure TNullLogger.Fatal(const AMessage: string; const AArgs: array of const; AException: Exception);
-begin
-  // Do nothing
-end;
-
-// All level checks return False
-function TNullLogger.IsTraceEnabled: Boolean;
-begin
-  Result := False;
-end;
-
-function TNullLogger.IsDebugEnabled: Boolean;
-begin
-  Result := False;
-end;
-
-function TNullLogger.IsInfoEnabled: Boolean;
-begin
-  Result := False;
-end;
-
-function TNullLogger.IsWarnEnabled: Boolean;
-begin
-  Result := False;
-end;
-
-function TNullLogger.IsErrorEnabled: Boolean;
-begin
-  Result := False;
-end;
-
-function TNullLogger.IsFatalEnabled: Boolean;
-begin
-  Result := False;
-end;
-
-procedure TNullLogger.SetLevel(ALevel: TLogLevel);
-begin
-  FLevel := ALevel;
-  // Note: Even if level is set, this logger still does nothing
-end;
-
-function TNullLogger.GetLevel: TLogLevel;
-begin
-  Result := FLevel;
-end;
-
-function TNullLogger.GetName: string;
-begin
-  Result := FName;
+  // Do nothing - all messages are discarded
 end;
 
 end.

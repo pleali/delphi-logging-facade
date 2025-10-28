@@ -176,6 +176,40 @@ type
     /// Gets the logger name. Returns empty string for the root logger.
     /// </summary>
     function GetName: string;
+
+    // Chain of Responsibility methods
+
+    /// <summary>
+    /// Gets the next logger in the chain.
+    /// </summary>
+    function GetNext: ILogger;
+
+    /// <summary>
+    /// Sets the next logger in the chain.
+    /// </summary>
+    procedure SetNext(ALogger: ILogger);
+
+    /// <summary>
+    /// Adds a logger to the end of the chain.
+    /// Returns the added logger for fluent interface.
+    /// </summary>
+    function AddToChain(ALogger: ILogger): ILogger;
+
+    /// <summary>
+    /// Removes a logger from the chain.
+    /// Returns True if the logger was found and removed.
+    /// </summary>
+    function RemoveFromChain(ALogger: ILogger): Boolean;
+
+    /// <summary>
+    /// Gets the total number of loggers in the chain (including self).
+    /// </summary>
+    function GetChainCount: Integer;
+
+    /// <summary>
+    /// Clears all loggers from the chain (keeps only self).
+    /// </summary>
+    procedure ClearChain;
   end;
 
 implementation

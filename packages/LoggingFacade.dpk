@@ -35,12 +35,12 @@ requires
 contains
   Logger.Types in '..\src\Logger.Types.pas',
   Logger.Intf in '..\src\Logger.Intf.pas',
+  Logger.Base in '..\src\Logger.Base.pas',
   Logger.Factory in '..\src\Logger.Factory.pas',
   Logger.Console in '..\src\Logger.Console.pas',
   Logger.Debug in '..\src\Logger.Debug.pas',
   Logger.Null in '..\src\Logger.Null.pas',
   Logger.Config in '..\src\Logger.Config.pas',
-  Logger.Composite in '..\src\Logger.Composite.pas',
   Logger.MainThread in '..\src\Logger.MainThread.pas',
   Logger.StackTrace in '..\src\Logger.StackTrace.pas',
   Logger.StackTrace.Loader in '..\src\Logger.StackTrace.Loader.pas',

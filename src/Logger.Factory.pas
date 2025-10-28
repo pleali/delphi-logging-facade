@@ -213,7 +213,6 @@ implementation
 uses
   Logger.Console,
   Logger.Null,
-  Logger.Composite,
   Logger.Debug;
 
 { TLoggerFactory }
@@ -344,45 +343,63 @@ end;
 class function TLoggerFactory.GetDefaultLogger: ILogger;
 var
   LLevel: TLogLevel;
-  LComposite: TCompositeLogger;
+  LFirstLogger: ILogger;
 begin
   LoadConfigIfNeeded;
   LLevel := FConfig.GetLevelForLogger('', llInfo);
 
-  // Create composite logger
-  LComposite := TCompositeLogger.Create('', LLevel);
+  // Create initial logger based on environment
+  LFirstLogger := nil;
 
   // Add TDebugLogger if debugger is attached
   if IsDebuggerAttached then
-    LComposite.AddLogger(TDebugLogger.Create('', LLevel));
+    LFirstLogger := TDebugLogger.Create('', LLevel);
 
   // Add TConsoleLogger if this is a console application
   if IsConsoleApplication then
-    LComposite.AddLogger(TConsoleLogger.Create('', LLevel, True));
+  begin
+    if LFirstLogger = nil then
+      LFirstLogger := TConsoleLogger.Create('', LLevel, True)
+    else
+      LFirstLogger.AddToChain(TConsoleLogger.Create('', LLevel, True));
+  end;
 
-  Result := LComposite;
+  // If no logger was created, use a null logger
+  if LFirstLogger = nil then
+    LFirstLogger := TNullLogger.Create('');
+
+  Result := LFirstLogger;
 end;
 
 class function TLoggerFactory.GetDefaultNamedLogger(const AName: string): ILogger;
 var
   LLevel: TLogLevel;
-  LComposite: TCompositeLogger;
+  LFirstLogger: ILogger;
 begin
   LoadConfigIfNeeded;
   LLevel := FConfig.GetLevelForLogger(AName, llInfo);
 
-  // Create composite logger
-  LComposite := TCompositeLogger.Create(AName, LLevel);
+  // Create initial logger based on environment
+  LFirstLogger := nil;
 
   // Add TDebugLogger if debugger is attached
   if IsDebuggerAttached then
-    LComposite.AddLogger(TDebugLogger.Create(AName, LLevel));
+    LFirstLogger := TDebugLogger.Create(AName, LLevel);
 
   // Add TConsoleLogger if this is a console application
   if IsConsoleApplication then
-    LComposite.AddLogger(TConsoleLogger.Create(AName, LLevel, True));
+  begin
+    if LFirstLogger = nil then
+      LFirstLogger := TConsoleLogger.Create(AName, LLevel, True)
+    else
+      LFirstLogger.AddToChain(TConsoleLogger.Create(AName, LLevel, True));
+  end;
 
-  Result := LComposite;
+  // If no logger was created, use a null logger
+  if LFirstLogger = nil then
+    LFirstLogger := TNullLogger.Create(AName);
+
+  Result := LFirstLogger;
 end;
 
 class function TLoggerFactory.GetLogger(const AName: string): ILogger;
@@ -631,7 +648,7 @@ end;
 class function TLoggerFactory.AddLogger(const ALoggerName: string; ALogger: ILogger): ILogger;
 var
   LFullName: string;
-  LComposite: TCompositeLogger;
+  LRootLogger: ILogger;
 begin
   if ALogger = nil then
     raise EArgumentNilException.Create('Logger instance cannot be nil');
@@ -639,24 +656,17 @@ begin
   // Normalize logger name
   LFullName := LowerCase(Trim(ALoggerName));
 
-  // Get or create the composite logger
-  Result := GetLogger(LFullName);
+  // Get or create the logger
+  LRootLogger := GetLogger(LFullName);
 
-  // Add logger to composite (composite will prevent duplicates)
-  if Result is TCompositeLogger then
-  begin
-    LComposite := TCompositeLogger(Result);
-    LComposite.AddLogger(ALogger);
-  end
-  else
-    raise Exception.Create('GetLogger did not return a TCompositeLogger instance');
+  // Add logger to the chain
+  Result := LRootLogger.AddToChain(ALogger);
 end;
 
 class procedure TLoggerFactory.RemoveLogger(const ALoggerName: string; ALogger: ILogger);
 var
   LFullName: string;
   LLogger: ILogger;
-  LComposite: TCompositeLogger;
 begin
   if ALogger = nil then
     Exit;
@@ -672,12 +682,9 @@ begin
     else
       FNamedLoggers.TryGetValue(LFullName, LLogger);
 
-    // Remove from composite if found
-    if (LLogger <> nil) and (LLogger is TCompositeLogger) then
-    begin
-      LComposite := TCompositeLogger(LLogger);
-      LComposite.RemoveLogger(ALogger);
-    end;
+    // Remove from chain if found
+    if LLogger <> nil then
+      LLogger.RemoveFromChain(ALogger);
   finally
     FLock.Leave;
   end;

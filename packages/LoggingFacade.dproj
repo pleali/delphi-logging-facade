@@ -136,15 +136,19 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
-        <DCCReference Include="src\Logger.Types.pas"/>
-        <DCCReference Include="src\Logger.Intf.pas"/>
-        <DCCReference Include="src\Logger.Factory.pas"/>
-        <DCCReference Include="src\Logger.Default.pas"/>
-        <DCCReference Include="src\Logger.Null.pas"/>
-        <DCCReference Include="src\Logger.Config.pas"/>
-        <DCCReference Include="src\Logger.StackTrace.pas"/>
-        <DCCReference Include="src\Logger.StackTrace.Mock.pas"/>
-        <None Include="src\Logger.AutoContext.inc"/>
+        <DCCReference Include="..\src\Logger.Types.pas"/>
+        <DCCReference Include="..\src\Logger.Intf.pas"/>
+        <DCCReference Include="..\src\Logger.Base.pas"/>
+        <DCCReference Include="..\src\Logger.Factory.pas"/>
+        <DCCReference Include="..\src\Logger.Console.pas"/>
+        <DCCReference Include="..\src\Logger.Debug.pas"/>
+        <DCCReference Include="..\src\Logger.Null.pas"/>
+        <DCCReference Include="..\src\Logger.Config.pas"/>
+        <DCCReference Include="..\src\Logger.StackTrace.pas"/>
+        <DCCReference Include="..\src\Logger.StackTrace.Loader.pas"/>
+        <DCCReference Include="..\src\Logger.StackTrace.Mock.pas"/>
+        <DCCReference Include="..\src\Logger.MainThread.pas"/>
+        <None Include="..\src\Logger.AutoContext.inc"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
