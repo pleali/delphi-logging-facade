@@ -83,8 +83,6 @@
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
         <DCC_DcuOutput>..\..\lib\$(Platform)\$(Config)</DCC_DcuOutput>
-        <DCC_BplOutput>..\..\bin\$(Platform)\$(Config)</DCC_BplOutput>
-        <DCC_DcpOutput>..\..\lib\$(Platform)\$(Config)</DCC_DcpOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_OSX64)'!=''">
         <DCC_UsePackage>rtl;LoggingFacade;$(DCC_UsePackage)</DCC_UsePackage>
@@ -137,7 +135,7 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="LoggingFacade.dcp"/>
-        <DCCReference Include="src\Logger.QuickLogger.Adapter.pas"/>
+        <DCCReference Include="..\src\Logger.QuickLogger.Adapter.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -158,10 +156,7 @@
                 <Source>
                     <Source Name="MainSource">LoggingFacade.QuickLogger.dpk</Source>
                 </Source>
-                <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Composants Microsoft Office 2000 Sample Automation Server Wrapper</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp290.bpl">Composants Microsoft Office XP Sample Automation Server Wrapper</Excluded_Packages>
-                </Excluded_Packages>
+                <Excluded_Packages/>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="OSX64">True</Platform>
