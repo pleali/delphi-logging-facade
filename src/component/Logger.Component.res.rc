@@ -1,0 +1,5 @@
+// Resource file for TLoggerComponent icon
+// This file defines the icon to display in the Delphi component palette
+
+// Icon resource with ID 1
+1 ICON "TLoggerComponent.ico"
