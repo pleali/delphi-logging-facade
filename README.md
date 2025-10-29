@@ -51,6 +51,7 @@ LoggingFacade provides a unified logging interface for Delphi applications, allo
 - Large applications with multiple teams or modules
 - Library development without forcing specific logging implementations
 - Microservices with different logging strategies per service
+- High-performance services (REST APIs, mORMot servers, WebBroker applications)
 - Testing environments requiring easy mocking or disabling of logs
 
 ## Key Features
@@ -143,13 +144,14 @@ end.
 
 ### Exception Logging with Stack Traces
 
+**When using BPL packages**, stack traces are automatically available if `LoggingFacade.StackTrace.JclDebug.bpl` is deployed - no code changes needed!
+
 ```delphi
 program ExceptionLogging;
 
 uses
   System.SysUtils,
-  Logger.Factory, Logger.Intf,
-  Logger.StackTrace.Loader;  // Enable stack traces
+  Logger.Factory, Logger.Intf;  // Stack trace support is automatic with BPL
 
 procedure RiskyOperation;
 var
@@ -163,7 +165,7 @@ begin
   except
     on E: Exception do
     begin
-      Logger.Error('Operation failed', E);  // Logs with stack trace
+      Logger.Error('Operation failed', E);  // Automatically includes stack trace if BPL is present
       raise;
     end;
   end;
@@ -452,16 +454,18 @@ Best for shared components across multiple applications.
 
 Open each `.dpk` file in Delphi and compile (Shift+F9):
 
-- `packages\LoggingFacade.dpk` → Core framework
+- `packages\LoggingFacade.dpk` → Core framework (required)
 - `packages\LoggingFacade.LoggerPro.dpk` → LoggerPro adapter (optional)
 - `packages\LoggingFacade.QuickLogger.dpk` → QuickLogger adapter (optional)
-- `packages\LoggingFacade.StackTrace.JclDebug.dpk` → Stack traces (optional)
+- `packages\LoggingFacade.StackTrace.JclDebug.dpk` → Stack traces with JCL (optional, automatically detected when present)
 
 #### 2. Deploy BPL Files
 
 Copy the generated `.bpl` files to:
 - System PATH directory, or
 - Application directory
+
+**Note:** For stack traces, simply deploy `LoggingFacade.StackTrace.JclDebug.bpl` to your application directory. When you include `Logger.StackTrace.Loader` in your code, the BPL is automatically detected and loaded. No manual configuration required.
 
 #### 3. Configure Your Project
 
@@ -1000,36 +1004,83 @@ TLoggerFactory.SetNamedLoggerFactory(
 
 ### Stack Trace Configuration
 
-#### Dynamic Loading (Production)
+**Stack traces are automatically enabled when the appropriate BPL is present.** When using `LoggingFacade.bpl`, simply deploy `LoggingFacade.StackTrace.JclDebug.bpl` alongside your executable - no code changes or manual configuration required!
+
+#### Dynamic Loading with BPL Packages (Production - Recommended)
+
+**Fully Automatic - Zero Configuration:**
+
+When you use the `LoggingFacade.bpl` package:
+1. The stack trace loader is automatically included in the BPL
+2. When you create your first logger via `TLoggerFactory.GetLogger`, the framework automatically:
+   - Searches for `LoggingFacade.StackTrace.JclDebug.bpl` in the executable directory and LoggingFacade.bpl directory
+   - Loads the BPL dynamically if found
+   - Enables stack trace support transparently
+   - Falls back gracefully if the BPL is not present (no errors, just no stack traces)
+
+**Usage:**
 
 ```delphi
 uses
-  Logger.StackTrace.Loader;  // Auto-loads at initialization
+  Logger.Factory, Logger.Intf;  // No need to include Logger.StackTrace.Loader!
 
 begin
-  // Stack traces automatically available if BPL found
+  // Stack traces automatically available if BPL is deployed
   var Logger := TLoggerFactory.GetLogger('MyApp');
   try
     raise Exception.Create('Test error');
   except
     on E: Exception do
-      Logger.Error('Operation failed', E);  // Includes stack trace
+      Logger.Error('Operation failed', E);  // Includes stack trace if BPL present
   end;
 end.
 ```
 
+**Deployment:**
+- Copy `LoggingFacade.StackTrace.JclDebug.bpl` to your application directory
+- Stack traces will automatically be enabled
+- If BPL is missing, logging continues normally without stack traces
+- No uses clause changes needed!
+
 #### Static Linking (Development)
 
+**For static linking (compiling source files directly instead of using BPLs):**
+
+When NOT using `LoggingFacade.bpl`, you have two options:
+
+**Option 1: Include the loader manually**
 ```delphi
 uses
-  Logger.StackTrace.JclDebug;  // Direct JCL dependency
+  Logger.Factory, Logger.Intf,
+  Logger.StackTrace.Loader;  // Required when statically linking
+
+begin
+  // Stack traces automatically enabled if BPL is found
+  var Logger := TLoggerFactory.GetLogger('MyApp');
+  try
+    raise Exception.Create('Test error');
+  except
+    on E: Exception do
+      Logger.Error('Operation failed', E);
+  end;
+end.
+```
+
+**Option 2: Direct JCL linking (no BPL needed)**
+```delphi
+uses
+  Logger.Factory, Logger.Intf,
+  Logger.StackTrace.JclDebug;  // Direct JCL dependency, no BPL required
 
 begin
   // Stack traces available immediately
-  TStackTraceManager.Enable;
-
   var Logger := TLoggerFactory.GetLogger('MyApp');
-  // Use as above
+  try
+    raise Exception.Create('Test error');
+  except
+    on E: Exception do
+      Logger.Error('Operation failed', E);
+  end;
 end.
 ```
 
