@@ -70,18 +70,22 @@ type
     // ILogger implementation - Logging methods
     procedure Trace(const AMessage: string); overload;
     procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+    procedure Trace(const AMessage: string; AException: Exception); overload;
     procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Debug(const AMessage: string); overload;
     procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+    procedure Debug(const AMessage: string; AException: Exception); overload;
     procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Info(const AMessage: string); overload;
     procedure Info(const AMessage: string; const AArgs: array of const); overload;
+    procedure Info(const AMessage: string; AException: Exception); overload;
     procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Warn(const AMessage: string); overload;
     procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+    procedure Warn(const AMessage: string; AException: Exception); overload;
     procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
     procedure Error(const AMessage: string); overload;
@@ -193,6 +197,11 @@ begin
   LogMessage(llTrace, AMessage, AArgs);
 end;
 
+procedure TBaseLogger.Trace(const AMessage: string; AException: Exception);
+begin
+  LogMessage(llTrace, FormatMessage(AMessage, AException));
+end;
+
 procedure TBaseLogger.Trace(const AMessage: string; const AArgs: array of const; AException: Exception);
 begin
   LogMessage(llTrace, AMessage, AArgs, AException);
@@ -207,6 +216,11 @@ end;
 procedure TBaseLogger.Debug(const AMessage: string; const AArgs: array of const);
 begin
   LogMessage(llDebug, AMessage, AArgs);
+end;
+
+procedure TBaseLogger.Debug(const AMessage: string; AException: Exception);
+begin
+  LogMessage(llDebug, FormatMessage(AMessage, AException));
 end;
 
 procedure TBaseLogger.Debug(const AMessage: string; const AArgs: array of const; AException: Exception);
@@ -225,6 +239,11 @@ begin
   LogMessage(llInfo, AMessage, AArgs);
 end;
 
+procedure TBaseLogger.Info(const AMessage: string; AException: Exception);
+begin
+  LogMessage(llInfo, FormatMessage(AMessage, AException));
+end;
+
 procedure TBaseLogger.Info(const AMessage: string; const AArgs: array of const; AException: Exception);
 begin
   LogMessage(llInfo, AMessage, AArgs, AException);
@@ -239,6 +258,11 @@ end;
 procedure TBaseLogger.Warn(const AMessage: string; const AArgs: array of const);
 begin
   LogMessage(llWarn, AMessage, AArgs);
+end;
+
+procedure TBaseLogger.Warn(const AMessage: string; AException: Exception);
+begin
+  LogMessage(llWarn, FormatMessage(AMessage, AException));
 end;
 
 procedure TBaseLogger.Warn(const AMessage: string; const AArgs: array of const; AException: Exception);

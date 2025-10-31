@@ -196,8 +196,10 @@ Logger.Info('Application started');
 // Message with format arguments
 Logger.Info('Processing order #%d', [OrderId]);
 
-// Message with exception (ERROR and FATAL only)
+// Message with exception (all levels)
 Logger.Error('Database connection failed', DatabaseException);
+Logger.Warn('Connection unstable', ConnectionException);
+Logger.Info('Recovered from error', RecoveryException);
 
 // Message with format arguments and exception (all levels)
 Logger.Error('Failed to process order #%d', [OrderId], OrderException);
@@ -209,33 +211,37 @@ Logger.Error('Failed to process order #%d', [OrderId], OrderException);
 ILogger = interface
   ['{B9A7E5D1-4F2C-4E8D-A3B6-7C8D9E0F1A2B}']
 
-  // TRACE level
+  // TRACE level - all 4 overloads
   procedure Trace(const AMessage: string); overload;
   procedure Trace(const AMessage: string; const AArgs: array of const); overload;
+  procedure Trace(const AMessage: string; AException: Exception); overload;
   procedure Trace(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
-  // DEBUG level
+  // DEBUG level - all 4 overloads
   procedure Debug(const AMessage: string); overload;
   procedure Debug(const AMessage: string; const AArgs: array of const); overload;
+  procedure Debug(const AMessage: string; AException: Exception); overload;
   procedure Debug(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
-  // INFO level
+  // INFO level - all 4 overloads
   procedure Info(const AMessage: string); overload;
   procedure Info(const AMessage: string; const AArgs: array of const); overload;
+  procedure Info(const AMessage: string; AException: Exception); overload;
   procedure Info(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
-  // WARN level
+  // WARN level - all 4 overloads
   procedure Warn(const AMessage: string); overload;
   procedure Warn(const AMessage: string; const AArgs: array of const); overload;
+  procedure Warn(const AMessage: string; AException: Exception); overload;
   procedure Warn(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
-  // ERROR level - includes additional overload without format args
+  // ERROR level - all 4 overloads
   procedure Error(const AMessage: string); overload;
   procedure Error(const AMessage: string; const AArgs: array of const); overload;
   procedure Error(const AMessage: string; AException: Exception); overload;
   procedure Error(const AMessage: string; const AArgs: array of const; AException: Exception); overload;
 
-  // FATAL level - includes additional overload without format args
+  // FATAL level - all 4 overloads
   procedure Fatal(const AMessage: string); overload;
   procedure Fatal(const AMessage: string; const AArgs: array of const); overload;
   procedure Fatal(const AMessage: string; AException: Exception); overload;
