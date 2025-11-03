@@ -42,7 +42,7 @@ logs/
 *.~*
 __history/
 __recovery/
-Win32/
+#Win32/
 Win64/
 *.tvsconfig
 
@@ -53,7 +53,8 @@ build-logs/
 *.delphilsp.json
 
 # Compiled output directories
-bin/
+bin/*
+!bin/Win32/Debug/logging-debug.properties
 lib/
 
 # Castalia statistics file (since XE7 Castalia is distributed with Delphi)
@@ -63,7 +64,7 @@ lib/
 modules/
 
 # Delphi project folders
-Win32/
+#Win32/
 Win64/
 OSX32/
 OSX64/
@@ -124,3 +125,4 @@ ModelSupport_*
 # Package files
 *.dcp
 *.bpl
+

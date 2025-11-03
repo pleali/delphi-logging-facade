@@ -12,7 +12,8 @@
       "Bash(git commit:*)",
       "WebSearch",
       "WebFetch(domain:logback.qos.ch)",
-      "WebFetch(domain:dennis-xlc.gitbooks.io)"
+      "WebFetch(domain:dennis-xlc.gitbooks.io)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
