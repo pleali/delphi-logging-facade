@@ -498,6 +498,7 @@ begin
 
   // Check if file modification time changed
   CurrentModTime := GetFileModificationTime(FConfigFile);
+
   if CurrentModTime = FConfigFileModTime then
     Exit;  // File hasn't changed
 
@@ -513,8 +514,11 @@ begin
       FLock.Leave;
     end;
   except
-    // Silently ignore errors - keep existing configuration
-    // This ensures safe fallback behavior
+    on E: Exception do
+    begin
+      // Silently ignore errors - keep existing configuration
+      // This ensures safe fallback behavior
+    end;
   end;
 end;
 

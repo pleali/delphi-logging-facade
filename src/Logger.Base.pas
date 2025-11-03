@@ -61,7 +61,7 @@ type
     /// <summary>
     /// Log to this logger and propagate to next in chain.
     /// </summary>
-    procedure LogMessage(ALevel: TLogLevel; const AMessage: string); overload;
+    procedure LogMessage(ALevel: TLogLevel; const AMessage: string; ACheckConfig: Boolean = True); overload;
     procedure LogMessage(ALevel: TLogLevel; const AMessage: string; const AArgs: array of const); overload;
     procedure LogMessage(ALevel: TLogLevel; const AMessage: string; const AArgs: array of const; AException: Exception); overload;
   public
@@ -154,26 +154,20 @@ begin
     Result := AMessage;
 end;
 
-procedure TBaseLogger.LogMessage(ALevel: TLogLevel; const AMessage: string);
+procedure TBaseLogger.LogMessage(ALevel: TLogLevel; const AMessage: string; ACheckConfig: Boolean);
 begin
-  // Opportunistic config check before logging
-  TLoggerFactory.CheckConfigReload;
+  // Opportunistic config check before logging (only for entry point)
+  if ACheckConfig then
+    TLoggerFactory.CheckConfigReload;
 
   // Log locally if level is enabled
   if IsLevelEnabled(ALevel) then
     DoLog(ALevel, AMessage);
 
-  // Propagate to next logger in chain
+  // Propagate to next logger in chain (without re-checking config)
   if FNext <> nil then
   begin
-    case ALevel of
-      llTrace: FNext.Trace(AMessage);
-      llDebug: FNext.Debug(AMessage);
-      llInfo:  FNext.Info(AMessage);
-      llWarn:  FNext.Warn(AMessage);
-      llError: FNext.Error(AMessage);
-      llFatal: FNext.Fatal(AMessage);
-    end;
+    (FNext as TBaseLogger).LogMessage(ALevel, AMessage, False);
   end;
 end;
 
@@ -353,6 +347,10 @@ begin
   FChainLock.Enter;
   try
     FMinLevel := ALevel;
+
+    // Propagate level change to all loggers in the chain
+    if FNext <> nil then
+      FNext.SetLevel(ALevel);
   finally
     FChainLock.Leave;
   end;
