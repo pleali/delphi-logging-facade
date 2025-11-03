@@ -7,7 +7,12 @@
       "Bash(find:*)",
       "Bash(dir:*)",
       "Bash(powershell -Command:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File build-delphi.ps1 examples/BasicExample/BasicExample.dpr -Clean)"
+      "Bash(powershell -ExecutionPolicy Bypass -File build-delphi.ps1 examples/BasicExample/BasicExample.dpr -Clean)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebSearch",
+      "WebFetch(domain:logback.qos.ch)",
+      "WebFetch(domain:dennis-xlc.gitbooks.io)"
     ],
     "deny": [],
     "ask": []

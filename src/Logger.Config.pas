@@ -33,10 +33,19 @@ type
     FConfigFile: string;
     FLock: TCriticalSection;
 
+    // Auto-reload support (opportunistic checking)
+    FScanEnabled: Boolean;
+    FScanPeriod: Integer;  // in milliseconds
+    FConfigFileModTime: TDateTime;  // last known modification time
+    FLastCheckTime: TDateTime;      // last time we checked for changes
+    FConfigReloaded: Boolean;       // flag indicating config was just reloaded
+
     function ParsePropertiesLine(const ALine: string; out AKey, AValue: string): Boolean;
     function NormalizeLoggerName(const AName: string): string;
     function MatchesWildcard(const ALoggerName, APattern: string): Boolean;
     function GetSpecificity(const APattern: string): Integer;
+    function ParseTimePeriod(const AValue: string): Integer;
+    function GetFileModificationTime(const AFileName: string): TDateTime;
   public
     constructor Create;
     destructor Destroy; override;
@@ -101,13 +110,37 @@ type
     /// Returns the path of the currently loaded configuration file.
     /// </summary>
     property ConfigFile: string read FConfigFile;
+
+    /// <summary>
+    /// Checks if configuration file has been modified and reloads if needed.
+    /// Uses opportunistic checking: only checks if scan period has elapsed.
+    /// Thread-safe.
+    /// </summary>
+    procedure CheckAndReloadIfNeeded;
+
+    /// <summary>
+    /// Returns true if automatic configuration reloading is enabled.
+    /// </summary>
+    property ScanEnabled: Boolean read FScanEnabled;
+
+    /// <summary>
+    /// Returns the scan period in milliseconds.
+    /// </summary>
+    property ScanPeriod: Integer read FScanPeriod;
+
+    /// <summary>
+    /// Checks if configuration was just reloaded and clears the flag.
+    /// Returns true if config was reloaded since last check.
+    /// </summary>
+    function WasConfigReloaded: Boolean;
   end;
 
 implementation
 
 uses
   System.StrUtils,
-  System.IOUtils;
+  System.IOUtils,
+  System.DateUtils;
 
 { TLoggerConfig }
 
@@ -118,6 +151,13 @@ begin
   FWildcardRules := TList<TPair<string, TLogLevel>>.Create;
   FRootLevel := llInfo; // Default root level
   FConfigFile := '';
+
+  // Initialize scan settings - disabled by default (like Logback)
+  FScanEnabled := False;
+  FScanPeriod := 60000;   // 60 seconds (like Logback)
+  FLastCheckTime := 0;    // Never checked yet
+  FConfigFileModTime := 0;
+  FConfigReloaded := False;
   FLock := TCriticalSection.Create;
 end;
 
@@ -177,9 +217,22 @@ begin
       begin
         if ParsePropertiesLine(LLines[I], LKey, LValue) then
         begin
+          LNormalizedKey := NormalizeLoggerName(LKey);
+
+          // Parse scan properties
+          if LNormalizedKey = 'scan' then
+          begin
+            FScanEnabled := SameText(LValue, 'true');
+            Continue;
+          end
+          else if LNormalizedKey = 'scan.period' then
+          begin
+            FScanPeriod := ParseTimePeriod(LValue);
+            Continue;
+          end;
+
           // Parse log level
           LLevel := TLogLevel.FromString(LValue);
-          LNormalizedKey := NormalizeLoggerName(LKey);
 
           // Special case for root logger
           if (LNormalizedKey = 'root') or (LNormalizedKey = '*') then
@@ -225,6 +278,10 @@ begin
   LContent := TFile.ReadAllText(AFileName);
   FConfigFile := AFileName;
   LoadFromString(LContent);
+
+  // Initialize file tracking for auto-reload
+  FConfigFileModTime := GetFileModificationTime(AFileName);
+  FLastCheckTime := Now;
 end;
 
 function TLoggerConfig.GetSpecificity(const APattern: string): Integer;
@@ -368,6 +425,105 @@ begin
   FLock.Enter;
   try
     FRootLevel := ALevel;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+function TLoggerConfig.ParseTimePeriod(const AValue: string): Integer;
+var
+  Parts: TArray<string>;
+  Number: Double;
+  Unit_: string;
+begin
+  // Default: 60 seconds
+  Result := 60000;
+
+  // Split "30 seconds" into ["30", "seconds"]
+  Parts := AValue.Trim.Split([' '], System.SysUtils.TStringSplitOptions.ExcludeEmpty);
+
+  if Length(Parts) <> 2 then
+    Exit;  // Invalid format, use default
+
+  // Parse numeric value
+  if not TryStrToFloat(Parts[0], Number) then
+    Exit;
+
+  // Parse unit
+  Unit_ := LowerCase(Parts[1]);
+
+  if (Unit_ = 'millisecond') or (Unit_ = 'milliseconds') or (Unit_ = 'ms') then
+    Result := Trunc(Number)
+  else if (Unit_ = 'second') or (Unit_ = 'seconds') or (Unit_ = 's') then
+    Result := Trunc(Number * 1000)
+  else if (Unit_ = 'minute') or (Unit_ = 'minutes') or (Unit_ = 'm') then
+    Result := Trunc(Number * 60 * 1000)
+  else if (Unit_ = 'hour') or (Unit_ = 'hours') or (Unit_ = 'h') then
+    Result := Trunc(Number * 60 * 60 * 1000)
+  else if (Unit_ = 'day') or (Unit_ = 'days') or (Unit_ = 'd') then
+    Result := Trunc(Number * 24 * 60 * 60 * 1000);
+
+  // Enforce minimum of 1 second to avoid performance issues
+  if Result < 1000 then
+    Result := 1000;
+end;
+
+function TLoggerConfig.GetFileModificationTime(const AFileName: string): TDateTime;
+begin
+  Result := 0;
+  if FileExists(AFileName) then
+    Result := TFile.GetLastWriteTime(AFileName);
+end;
+
+procedure TLoggerConfig.CheckAndReloadIfNeeded;
+var
+  CurrentTime: TDateTime;
+  ElapsedMs: Int64;
+  CurrentModTime: TDateTime;
+  Content: string;
+begin
+  // Quick exit if scan disabled or no config file loaded
+  if not FScanEnabled or (FConfigFile = '') then
+    Exit;
+
+  CurrentTime := Now;
+  ElapsedMs := MillisecondsBetween(CurrentTime, FLastCheckTime);
+
+  // Check if enough time has elapsed since last check
+  if ElapsedMs < FScanPeriod then
+    Exit;  // Too soon, don't check yet
+
+  // Update last check time first (even if reload fails)
+  FLastCheckTime := CurrentTime;
+
+  // Check if file modification time changed
+  CurrentModTime := GetFileModificationTime(FConfigFile);
+  if CurrentModTime = FConfigFileModTime then
+    Exit;  // File hasn't changed
+
+  // File changed - attempt reload
+  try
+    FLock.Enter;
+    try
+      Content := TFile.ReadAllText(FConfigFile, TEncoding.UTF8);
+      LoadFromString(Content);  // Reload configuration
+      FConfigFileModTime := CurrentModTime;  // Update stored mod time
+      FConfigReloaded := True;  // Signal that config was reloaded
+    finally
+      FLock.Leave;
+    end;
+  except
+    // Silently ignore errors - keep existing configuration
+    // This ensures safe fallback behavior
+  end;
+end;
+
+function TLoggerConfig.WasConfigReloaded: Boolean;
+begin
+  FLock.Enter;
+  try
+    Result := FConfigReloaded;
+    FConfigReloaded := False;  // Clear flag after reading
   finally
     FLock.Leave;
   end;

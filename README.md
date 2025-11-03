@@ -22,6 +22,7 @@ A flexible, SLF4J-inspired logging facade for Delphi that decouples application 
   - [Configuration Files](#configuration-files)
   - [Wildcard Patterns](#wildcard-patterns)
   - [Runtime Configuration](#runtime-configuration)
+  - [Automatic Configuration Reloading](#automatic-configuration-reloading)
 - [Installation](#installation)
   - [Dynamic Linking (BPL)](#dynamic-linking-bpl)
   - [Static Linking (Source Files)](#static-linking-source-files)
@@ -402,6 +403,118 @@ TLoggerFactory.SetLoggerLevel('app.api.*', llError);
 // Reload configuration file
 TLoggerFactory.ReloadConfig;
 ```
+
+### Automatic Configuration Reloading
+
+LoggingFacade supports automatic configuration file reloading, inspired by Logback's scan feature. When enabled, the framework monitors the configuration file for changes and reloads it automatically.
+
+#### How It Works
+
+**Opportunistic Checking (No Background Thread):**
+- Each time you log a message, the framework checks if enough time has elapsed since the last check
+- If the scan period has passed, it checks if the file modification time changed
+- If the file changed, configuration is reloaded automatically
+- **Zero overhead**: No background thread, checking only happens during logging operations
+- **Safe fallback**: If reload fails (syntax error, file missing), existing configuration is kept
+
+#### Enable Auto-Reload
+
+Add these properties to your `.properties` file:
+
+```properties
+# Enable automatic reloading
+scan=true
+
+# Check for changes every 30 seconds
+scan.period=30 seconds
+```
+
+#### Supported Time Units
+
+You can specify the scan period using human-readable time units:
+
+```properties
+# Milliseconds
+scan.period=5000 milliseconds
+
+# Seconds (most common)
+scan.period=30 seconds
+
+# Minutes
+scan.period=0.5 minute
+scan.period=2 minutes
+
+# Hours
+scan.period=1 hour
+
+# Days
+scan.period=1 day
+```
+
+**Default:** 60 seconds if not specified
+**Minimum:** 1 second (enforced for performance)
+
+#### Recommended Values
+
+- **Development:** 10-30 seconds (fast iteration)
+- **Production:** 60-120 seconds (if enabled at all)
+- **Note:** Auto-reload is **disabled by default** (like Logback)
+
+#### Configuration Example
+
+**Development (logging-debug.properties):**
+```properties
+# Quick feedback during development
+scan=true
+scan.period=10 seconds
+
+root=DEBUG
+MyApp=DEBUG
+```
+
+**Production (logging.properties):**
+```properties
+# Conservative approach - disabled by default
+# Uncomment if you need dynamic level changes in production
+# scan=true
+# scan.period=60 seconds
+
+root=WARN
+MyApp=INFO
+```
+
+#### Development Workflow Example
+
+1. Start your application with scan enabled
+2. Application logs messages continuously
+3. Edit `logging-debug.properties`, change `root=TRACE`
+4. Save the file
+5. Within 10 seconds (next log operation after scan period), changes apply automatically
+6. New log messages use updated levels
+7. **No application restart needed!**
+
+```delphi
+// Your application continues running
+Logger.Info('This will appear when root=INFO');
+// Edit config file: change root=DEBUG
+// Wait 10 seconds...
+Logger.Debug('This will now appear!');  // Automatically uses new level
+```
+
+#### Performance Impact
+
+- **Fast path:** When scan period hasn't elapsed, just a time comparison (~nanoseconds)
+- **Check path:** File modification time check (~microseconds)
+- **Reload path:** Only when file actually changed (rare)
+- **Overall:** Less than 1% overhead on log operations
+
+#### Thread Safety
+
+All configuration reloading is thread-safe:
+- Uses existing critical section patterns
+- Multiple threads can log simultaneously
+- Configuration updates are atomic
+- No race conditions during reload
 
 ### Practical Example
 

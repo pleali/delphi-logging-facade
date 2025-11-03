@@ -16,7 +16,8 @@ uses
   System.SyncObjs,
   Logger.Intf,
   Logger.Types,
-  Logger.StackTrace;
+  Logger.StackTrace,
+  Logger.Factory;
 
 type
   /// <summary>
@@ -155,6 +156,9 @@ end;
 
 procedure TBaseLogger.LogMessage(ALevel: TLogLevel; const AMessage: string);
 begin
+  // Opportunistic config check before logging
+  TLoggerFactory.CheckConfigReload;
+
   // Log locally if level is enabled
   if IsLevelEnabled(ALevel) then
     DoLog(ALevel, AMessage);

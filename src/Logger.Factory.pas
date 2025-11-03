@@ -65,6 +65,7 @@ type
     class function FindConfigFile: string; static;
     class function IsDebuggerAttached: Boolean; static;
     class function IsConsoleApplication: Boolean; static;
+    class procedure UpdateExistingLoggerLevels; static;
   public
     /// <summary>
     /// Gets a logger instance. If AName is empty, returns the root logger.
@@ -201,6 +202,12 @@ type
     /// <param name="ALoggerName">Logger name (empty string for root logger)</param>
     /// <param name="ALogger">Logger instance to remove</param>
     class procedure RemoveLogger(const ALoggerName: string; ALogger: ILogger); static;
+
+    /// <summary>
+    /// Checks if configuration file needs reloading (opportunistic checking).
+    /// Called internally by loggers. Thread-safe.
+    /// </summary>
+    class procedure CheckConfigReload; static;
   end;
 
   /// <summary>
@@ -671,6 +678,44 @@ begin
       LLogger.RemoveFromChain(ALogger);
   finally
     FLock.Leave;
+  end;
+end;
+
+class procedure TLoggerFactory.UpdateExistingLoggerLevels;
+var
+  LPair: TPair<string, ILogger>;
+  LNewLevel: TLogLevel;
+begin
+  FLock.Enter;
+  try
+    // Update root logger if it exists
+    if FRootLogger <> nil then
+    begin
+      LNewLevel := FConfig.GetLevelForLogger('', llInfo);
+      FRootLogger.SetLevel(LNewLevel);
+    end;
+
+    // Update all named loggers
+    for LPair in FNamedLoggers do
+    begin
+      LNewLevel := FConfig.GetLevelForLogger(LPair.Key, llInfo);
+      LPair.Value.SetLevel(LNewLevel);
+    end;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+class procedure TLoggerFactory.CheckConfigReload;
+begin
+  if Assigned(FConfig) then
+  begin
+    // Check and reload if needed
+    FConfig.CheckAndReloadIfNeeded;
+
+    // If config was reloaded, update existing logger levels
+    if FConfig.WasConfigReloaded then
+      UpdateExistingLoggerLevels;
   end;
 end;
 

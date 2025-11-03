@@ -184,7 +184,7 @@ begin
   Writeln;
 
   // Find a config file
-  LConfigFile := TPath.Combine(ExtractFilePath(ParamStr(0)), '..\..\config\logging-debug.properties');
+  LConfigFile := TPath.Combine(ExtractFilePath(ParamStr(0)), 'logging-debug.properties');
 
   if TFile.Exists(LConfigFile) then
   begin
@@ -250,8 +250,8 @@ begin
     Writeln('========================================');
     Writeln('All demos completed successfully!');
     Writeln;
-    Writeln('Note: Copy logging-debug.properties or logging.properties');
-    Writeln('      to the executable directory to test automatic loading.');
+    Writeln('Note: This example includes its own logging-debug.properties');
+    Writeln('      and logging.properties files for automatic loading.');
     Writeln;
     Writeln('Press ENTER to exit...');
     Readln;
