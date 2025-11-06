@@ -17,7 +17,8 @@ uses
   Logger.Intf,
   Logger.Types,
   Logger.StackTrace,
-  Logger.Factory;
+  Logger.Factory,
+  Logger.Name.Formatter;
 
 type
   /// <summary>
@@ -111,6 +112,7 @@ type
     procedure SetLevel(ALevel: TLogLevel);
     function GetLevel: TLogLevel;
     function GetName: string;
+    function GetAbbreviatedName(AWidth: Integer = 40): string;
 
     // Chain of Responsibility methods
     function GetNext: ILogger;
@@ -364,6 +366,11 @@ end;
 function TBaseLogger.GetName: string;
 begin
   Result := FName;
+end;
+
+function TBaseLogger.GetAbbreviatedName(AWidth: Integer): string;
+begin
+  Result := TLoggerNameFormatter.Abbreviate(FName, AWidth);
 end;
 
 // Chain of Responsibility methods

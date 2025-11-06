@@ -147,6 +147,7 @@
         <DCCReference Include="..\src\Logger.MainThread.pas"/>
         <DCCReference Include="..\src\Logger.StackTrace.pas"/>
         <DCCReference Include="..\src\Logger.StackTrace.Loader.pas"/>
+        <DCCReference Include="..\src\Logger.Name.Formatter.pas"/>
         <None Include="..\src\Logger.AutoContext.inc"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
@@ -193,7 +194,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="..\..\bin\Win32\Debug\LoggingFacade.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\23.0\Bpl\LoggingFacade.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>LoggingFacade.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

@@ -197,6 +197,15 @@ type
     /// </summary>
     function GetName: string;
 
+    /// <summary>
+    /// Gets the abbreviated logger name using Spring Boot/Logback-style abbreviation.
+    /// Package names are abbreviated to single characters while preserving the class name.
+    /// Example: "App.Database.Repository.Orders" -> "A.D.R.Orders"
+    /// </summary>
+    /// <param name="AWidth">Maximum width for the abbreviated name (default: 40)</param>
+    /// <returns>Abbreviated logger name</returns>
+    function GetAbbreviatedName(AWidth: Integer = 40): string;
+
     // Chain of Responsibility methods
 
     /// <summary>

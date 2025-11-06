@@ -43,6 +43,7 @@ contains
   Logger.Config in '..\src\Logger.Config.pas',
   Logger.MainThread in '..\src\Logger.MainThread.pas',
   Logger.StackTrace in '..\src\Logger.StackTrace.pas',
-  Logger.StackTrace.Loader in '..\src\Logger.StackTrace.Loader.pas';
+  Logger.StackTrace.Loader in '..\src\Logger.StackTrace.Loader.pas',
+  Logger.Name.Formatter in '..\src\Logger.Name.Formatter.pas';
 
 end.

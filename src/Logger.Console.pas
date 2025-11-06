@@ -31,7 +31,6 @@ type
     FUseColors: Boolean;
     FConsoleLock: TCriticalSection;
 
-    function AbbreviateLoggerName(const AName: string; AWidth: Integer): string;
     function FormatLogMessage(ALevel: TLogLevel; const AMessage: string): string;
     function FormatLoggerName: string;
     procedure WriteToConsole(ALevel: TLogLevel; const AMessage: string);
@@ -53,7 +52,8 @@ uses
   Winapi.Windows,
   {$ENDIF}
   System.DateUtils,
-  Logger.StackTrace;
+  Logger.StackTrace,
+  Logger.Name.Formatter;
 
 { TConsoleLogger }
 
@@ -70,63 +70,6 @@ begin
   inherited;
 end;
 
-function TConsoleLogger.AbbreviateLoggerName(const AName: string; AWidth: Integer): string;
-var
-  Segments: TArray<string>;
-  NumSegments, i: Integer;
-  ClassName: string;
-  AbbreviatedLength: Integer;
-  ClassNameMaxLength: Integer;
-begin
-  // Handle empty names
-  if AName = '' then
-    Exit('');
-
-  // Split by '.' separator
-  Segments := AName.Split(['.']);
-  NumSegments := Length(Segments);
-
-  // Single segment (no packages) - just handle length
-  if NumSegments = 1 then
-  begin
-    if Length(AName) > AWidth then
-      Exit(Copy(AName, 1, AWidth - 3) + '...')
-    else
-      Exit(AName);
-  end;
-
-  // Extract class name (last segment)
-  ClassName := Segments[NumSegments - 1];
-
-  // Calculate length with all packages abbreviated to single character
-  // Format: "A.B.C.ClassName" = (NumPackages * 2) + Length(ClassName)
-  AbbreviatedLength := (NumSegments - 1) * 2 + Length(ClassName);
-
-  if AbbreviatedLength <= AWidth then
-  begin
-    // Build abbreviated form: all packages as single char, full class name
-    Result := '';
-    for i := 0 to NumSegments - 2 do
-      Result := Result + Segments[i][1] + '.';
-    Result := Result + ClassName;
-  end
-  else
-  begin
-    // Even with abbreviated packages, the class name is too long
-    // Abbreviate packages and truncate class name
-    ClassNameMaxLength := AWidth - ((NumSegments - 1) * 2);
-
-    Result := '';
-    for i := 0 to NumSegments - 2 do
-      Result := Result + Segments[i][1] + '.';
-
-    if ClassNameMaxLength > 3 then
-      Result := Result + Copy(ClassName, 1, ClassNameMaxLength - 3) + '...'
-    else
-      Result := Result + '...';  // Extremely narrow width
-  end;
-end;
-
 function TConsoleLogger.FormatLoggerName: string;
 var
   NameWidth: Integer;
@@ -139,7 +82,7 @@ begin
 
   // Use Spring Boot-style abbreviation if name exceeds width
   if Length(GetName) > NameWidth then
-    FormattedName := AbbreviateLoggerName(GetName, NameWidth)
+    FormattedName := TLoggerNameFormatter.Abbreviate(GetName, NameWidth)
   else
     FormattedName := GetName;
 
