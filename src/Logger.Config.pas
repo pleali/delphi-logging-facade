@@ -24,6 +24,9 @@ type
   /// Configuration manager for logger levels, inspired by Logback.
   /// Supports hierarchical logger names with wildcard patterns and
   /// .properties file format for portable configuration.
+  ///
+  /// Note: Logger names and patterns are case-sensitive.
+  /// Example: 'Rpc.TSocket' will not match pattern 'rpc.*'
   /// </summary>
   TLoggerConfig = class
   private
@@ -171,8 +174,8 @@ end;
 
 function TLoggerConfig.NormalizeLoggerName(const AName: string): string;
 begin
-  // Convert to lowercase for case-insensitive matching (like Logback)
-  Result := LowerCase(Trim(AName));
+  // Logger names are case-sensitive. Only trim whitespace.
+  Result := Trim(AName);
 end;
 
 function TLoggerConfig.ParsePropertiesLine(const ALine: string;

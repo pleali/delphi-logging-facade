@@ -395,16 +395,16 @@ end;
 
 class function TLoggerFactory.GetLogger(const AName: string): ILogger;
 var
-  LFullName: string;
+  LName: string;
 begin
   // Load config on first call
   LoadConfigIfNeeded;
 
-  // Normalize logger name (lowercase, trimmed)
-  LFullName := LowerCase(Trim(AName));
+  // Trim whitespace but preserve case (case-sensitive names)
+  LName := Trim(AName);
 
   // Fast path for root logger (no name) - no lock needed for read
-  if LFullName = '' then
+  if LName = '' then
   begin
     if FRootLogger = nil then
     begin
@@ -426,18 +426,19 @@ begin
     Exit;
   end;
 
-  // Named logger path - check cache first
+  // Named logger path - check cache first (case-sensitive lookup)
   FLock.Enter;
   try
-    if not FNamedLoggers.TryGetValue(LFullName, Result) then
+    if not FNamedLoggers.TryGetValue(LName, Result) then
     begin
       // Get default named logger (already a composite)
       if Assigned(FNamedFactoryFunc) then
-        Result := FNamedFactoryFunc(LFullName)
+        Result := FNamedFactoryFunc(LName)
       else
-        Result := GetDefaultNamedLogger(LFullName);
+        Result := GetDefaultNamedLogger(LName);
 
-      FNamedLoggers.Add(LFullName, Result);
+      // Store using case-sensitive name
+      FNamedLoggers.Add(LName, Result);
     end;
   finally
     FLock.Leave;
@@ -587,22 +588,22 @@ end;
 class procedure TLoggerFactory.SetLoggerLevel(const ALoggerName: string; ALevel: TLogLevel);
 var
   LLogger: ILogger;
-  LFullName: string;
+  LName: string;
 begin
   FLock.Enter;
   try
     // Update configuration
     FConfig.SetLoggerLevel(ALoggerName, ALevel);
 
-    // Update existing logger instances if they're already created
-    LFullName := LowerCase(Trim(ALoggerName));
+    // Update existing logger instances if they're already created (case-sensitive)
+    LName := Trim(ALoggerName);
 
     // Update root logger
-    if (LFullName = '') and (FRootLogger <> nil) then
+    if (LName = '') and (FRootLogger <> nil) then
       FRootLogger.SetLevel(ALevel);
 
-    // Update named logger if it exists in cache
-    if (LFullName <> '') and FNamedLoggers.TryGetValue(LFullName, LLogger) then
+    // Update named logger if it exists in cache (case-sensitive lookup)
+    if (LName <> '') and FNamedLoggers.TryGetValue(LName, LLogger) then
       LLogger.SetLevel(ALevel);
   finally
     FLock.Leave;
@@ -638,17 +639,13 @@ end;
 
 class function TLoggerFactory.AddLogger(const ALoggerName: string; ALogger: ILogger): ILogger;
 var
-  LFullName: string;
   LRootLogger: ILogger;
 begin
   if ALogger = nil then
     raise EArgumentNilException.Create('Logger instance cannot be nil');
 
-  // Normalize logger name
-  LFullName := LowerCase(Trim(ALoggerName));
-
-  // Get or create the logger
-  LRootLogger := GetLogger(LFullName);
+  // Get or create the logger (GetLogger handles normalization internally)
+  LRootLogger := GetLogger(ALoggerName);
 
   // Add logger to the chain
   Result := LRootLogger.AddToChain(ALogger);
@@ -656,22 +653,22 @@ end;
 
 class procedure TLoggerFactory.RemoveLogger(const ALoggerName: string; ALogger: ILogger);
 var
-  LFullName: string;
+  LName: string;
   LLogger: ILogger;
 begin
   if ALogger = nil then
     Exit;
 
-  // Normalize logger name
-  LFullName := LowerCase(Trim(ALoggerName));
+  // Trim whitespace (case-sensitive lookup)
+  LName := Trim(ALoggerName);
 
   FLock.Enter;
   try
-    // Get logger from cache (root or named)
-    if LFullName = '' then
+    // Get logger from cache (root or named, case-sensitive)
+    if LName = '' then
       LLogger := FRootLogger
     else
-      FNamedLoggers.TryGetValue(LFullName, LLogger);
+      FNamedLoggers.TryGetValue(LName, LLogger);
 
     // Remove from chain if found
     if LLogger <> nil then

@@ -335,6 +335,11 @@ var
   ApiLogger := TLoggerFactory.GetLogger('MyApp.API.REST');
 ```
 
+**⚠️ Important: Logger names are case-sensitive**
+- `'MyApp.Database'` and `'myapp.database'` are **different loggers**
+- Configuration patterns must match the exact case: `MyApp.Database.*` will **not** match `myapp.database.connection`
+- Use consistent naming conventions (e.g., PascalCase for class names)
+
 **Each logger inherits configuration from its parent:**
 - `MyApp.Database.Connection` inherits from `MyApp.Database`
 - `MyApp.Database` inherits from `MyApp`
