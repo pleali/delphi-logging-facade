@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{8F3A5E2D-9B4C-4A1E-B7F6-3D8E9A0C1B2D}</ProjectGuid>
         <MainSource>StackTraceTest.dpr</MainSource>
@@ -98,8 +97,6 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\..\packages\LoggingFacade.dcp"/>
-        <DCCReference Include="..\..\packages\LoggingFacade.StackTrace.JclDebug.dcp"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

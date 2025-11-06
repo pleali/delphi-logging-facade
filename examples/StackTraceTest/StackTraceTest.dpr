@@ -288,13 +288,13 @@ end;
 procedure Test_MultipleExceptionTypes;
 var
   TestPassed: Boolean;
-  DivByZeroOK, AccessViolationOK, ArgumentOK: Boolean;
+  DivByZeroOK, AccessViolationOK: Boolean;
+  ArgumentOk: Boolean;
 begin
   Writeln('Test 8: Multiple exception types');
   try
     DivByZeroOK := False;
     AccessViolationOK := False;
-    ArgumentOK := False;
 
     // Test 1: Division by zero
     try
