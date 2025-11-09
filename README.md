@@ -78,18 +78,18 @@ Get started in 30 seconds:
 program QuickStart;
 
 uses
-  Logger.Factory, Logger.Intf;
+  Logger;  // Single unit for all core functionality
 
 var
-  Logger: ILogger;
+  MyLogger: ILogger;
 begin
   // Get a logger (uses default console logger)
-  Logger := TLoggerFactory.GetLogger('MyApp');
+  MyLogger := TLoggerFactory.GetLogger('MyApp');
 
   // Log messages
-  Logger.Info('Application started');
-  Logger.Debug('Processing data...');
-  Logger.Error('Something went wrong!');
+  MyLogger.Info('Application started');
+  MyLogger.Debug('Processing data...');
+  MyLogger.Error('Something went wrong!');
 end.
 ```
 
@@ -106,7 +106,7 @@ MyApp.Database=TRACE
 program ConfiguredLogging;
 
 uses
-  Logger.Factory, Logger.Intf, Logger.Types;
+  Logger;  // Single unit includes ILogger, TLoggerFactory, and TLogLevel
 
 type
   TDatabaseManager = class
@@ -152,13 +152,13 @@ program ExceptionLogging;
 
 uses
   System.SysUtils,
-  Logger.Factory, Logger.Intf;  // Stack trace support is automatic with BPL
+  Logger;  // Stack trace support is automatic with BPL
 
 procedure RiskyOperation;
 var
-  Logger: ILogger;
+  MyLogger: ILogger;
 begin
-  Logger := TLoggerFactory.GetLogger('MyApp.Critical');
+  MyLogger := TLoggerFactory.GetLogger('MyApp.Critical');
 
   try
     // Something that might fail
@@ -166,7 +166,7 @@ begin
   except
     on E: Exception do
     begin
-      Logger.Error('Operation failed', E);  // Automatically includes stack trace if BPL is present
+      MyLogger.Error('Operation failed', E);  // Automatically includes stack trace if BPL is present
       raise;
     end;
   end;
@@ -527,7 +527,7 @@ All configuration reloading is thread-safe:
 program HierarchicalDemo;
 
 uses
-  Logger.Factory, Logger.Intf, Logger.Types;
+  Logger;  // All core types and classes in one unit
 
 procedure InitializeLogging;
 begin
@@ -540,23 +540,23 @@ end;
 
 procedure DatabaseOperation;
 var
-  Logger: ILogger;
+  MyLogger: ILogger;
 begin
-  Logger := TLoggerFactory.GetLogger('app.database.connection');
+  MyLogger := TLoggerFactory.GetLogger('app.database.connection');
 
-  Logger.Trace('Opening connection...');              // Shows (TRACE level)
-  Logger.Debug('Executing query: SELECT * FROM...');  // Shows
-  Logger.Info('Query executed successfully');         // Shows
+  MyLogger.Trace('Opening connection...');              // Shows (TRACE level)
+  MyLogger.Debug('Executing query: SELECT * FROM...');  // Shows
+  MyLogger.Info('Query executed successfully');         // Shows
 end;
 
 procedure ApiEndpoint;
 var
-  Logger: ILogger;
+  MyLogger: ILogger;
 begin
-  Logger := TLoggerFactory.GetLogger('app.api.users');
+  MyLogger := TLoggerFactory.GetLogger('app.api.users');
 
-  Logger.Info('API called');                    // Hidden (ERROR level)
-  Logger.Error('Authentication failed');        // Shows
+  MyLogger.Info('API called');                    // Hidden (ERROR level)
+  MyLogger.Error('Authentication failed');        // Shows
 end;
 
 begin
@@ -613,12 +613,18 @@ In Project Options → Delphi Compiler → Search Path, add:
 
 #### 2. Add Units to Your Code
 
+**Simplified approach (recommended):**
 ```delphi
 uses
-  Logger.Intf,
-  Logger.Factory,
-  Logger.Types,
-  Logger.Default;  // Or other implementations
+  Logger;  // Single unit includes ILogger, TLoggerFactory, and TLogLevel
+```
+
+**Advanced approach (if you need specific implementations):**
+```delphi
+uses
+  Logger,           // Core functionality
+  Logger.Console,   // Console logger
+  Logger.Null;      // Null logger
 ```
 
 #### Comparison: BPL vs Source
@@ -1146,16 +1152,16 @@ When you use the `LoggingFacade.bpl` package:
 
 ```delphi
 uses
-  Logger.Factory, Logger.Intf;  // No need to include Logger.StackTrace.Loader!
+  Logger;  // No need to include Logger.StackTrace.Loader!
 
 begin
   // Stack traces automatically available if BPL is deployed
-  var Logger := TLoggerFactory.GetLogger('MyApp');
+  var MyLogger := TLoggerFactory.GetLogger('MyApp');
   try
     raise Exception.Create('Test error');
   except
     on E: Exception do
-      Logger.Error('Operation failed', E);  // Includes stack trace if BPL present
+      MyLogger.Error('Operation failed', E);  // Includes stack trace if BPL present
   end;
 end.
 ```
@@ -1175,17 +1181,17 @@ When NOT using `LoggingFacade.bpl`, you have two options:
 **Option 1: Include the loader manually**
 ```delphi
 uses
-  Logger.Factory, Logger.Intf,
-  Logger.StackTrace.Loader;  // Required when statically linking
+  Logger,                      // Core functionality
+  Logger.StackTrace.Loader;    // Required when statically linking
 
 begin
   // Stack traces automatically enabled if BPL is found
-  var Logger := TLoggerFactory.GetLogger('MyApp');
+  var MyLogger := TLoggerFactory.GetLogger('MyApp');
   try
     raise Exception.Create('Test error');
   except
     on E: Exception do
-      Logger.Error('Operation failed', E);
+      MyLogger.Error('Operation failed', E);
   end;
 end.
 ```
@@ -1193,17 +1199,17 @@ end.
 **Option 2: Direct JCL linking (no BPL needed)**
 ```delphi
 uses
-  Logger.Factory, Logger.Intf,
-  Logger.StackTrace.JclDebug;  // Direct JCL dependency, no BPL required
+  Logger,                        // Core functionality
+  Logger.StackTrace.JclDebug;    // Direct JCL dependency, no BPL required
 
 begin
   // Stack traces available immediately
-  var Logger := TLoggerFactory.GetLogger('MyApp');
+  var MyLogger := TLoggerFactory.GetLogger('MyApp');
   try
     raise Exception.Create('Test error');
   except
     on E: Exception do
-      Logger.Error('Operation failed', E);
+      MyLogger.Error('Operation failed', E);
   end;
 end.
 ```
@@ -1708,17 +1714,17 @@ end;
 After (with facade):
 ```delphi
 uses
-  Logger.Factory, Logger.Intf,
-  Logger.LoggerPro.Factory;  // One-time setup
+  Logger,                     // Core functionality
+  Logger.LoggerPro.Factory;   // One-time setup
 
 begin
   // Setup (once at app start)
   ConfigureLoggerPro;  // Your LoggerPro configuration
 
   // Usage (throughout app)
-  var Logger := TLoggerFactory.GetLogger('MyApp');
-  Logger.Info('Starting application');
-  Logger.Debug('Debug info');
+  var MyLogger := TLoggerFactory.GetLogger('MyApp');
+  MyLogger.Info('Starting application');
+  MyLogger.Debug('Debug info');
 end;
 ```
 
@@ -1738,8 +1744,8 @@ end;
 After (with facade):
 ```delphi
 uses
-  Logger.Factory, Logger.Intf,
-  Logger.QuickLogger.Adapter;
+  Logger,                        // Core functionality
+  Logger.QuickLogger.Adapter;    // QuickLogger adapter
 
 begin
   // Setup (once)
@@ -1751,9 +1757,9 @@ begin
   );
 
   // Usage
-  var Logger := TLoggerFactory.GetLogger('MyApp');
-  Logger.Info('Processing started');
-  Logger.Error('An error occurred');
+  var MyLogger := TLoggerFactory.GetLogger('MyApp');
+  MyLogger.Info('Processing started');
+  MyLogger.Error('An error occurred');
 end;
 ```
 

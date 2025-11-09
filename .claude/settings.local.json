@@ -13,7 +13,9 @@
       "WebSearch",
       "WebFetch(domain:logback.qos.ch)",
       "WebFetch(domain:dennis-xlc.gitbooks.io)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(./Win32/Debug/HierarchyApp.exe)",
+      "Bash(./bin/Win32/Debug/HierarchyApp.exe)"
     ],
     "deny": [],
     "ask": []

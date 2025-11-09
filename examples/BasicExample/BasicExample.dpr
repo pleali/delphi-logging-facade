@@ -7,11 +7,9 @@ program BasicExample;
 uses
   System.SysUtils,
   System.IOUtils,
-  Logger.Types,
-  Logger.Intf,
-  Logger.Console,
-  Logger.Null,
-  Logger.Factory;
+  Logger,           // Single unit for core logging functionality
+  Logger.Console,   // Console logger implementation
+  Logger.Null;      // Null logger implementation
 
 /// <summary>
 /// Simulates processing some business logic

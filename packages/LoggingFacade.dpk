@@ -33,6 +33,7 @@ requires
   rtl;
 
 contains
+  Logger in '..\src\Logger.pas',
   Logger.Types in '..\src\Logger.Types.pas',
   Logger.Intf in '..\src\Logger.Intf.pas',
   Logger.Base in '..\src\Logger.Base.pas',
